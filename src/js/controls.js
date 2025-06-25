@@ -8,6 +8,12 @@ class Controls {
     this.#addKeyboardListeners();
   }
 
+  /**
+   * Adds keyboard listeners to control the car's movement.
+   * This method listens for keydown and keyup events to update the control states.
+   * @returns {void}
+   * */
+
   #addKeyboardListeners() {
     document.onkeydown = (e) => {
       switch (e.key) {

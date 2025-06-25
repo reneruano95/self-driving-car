@@ -14,10 +14,20 @@ class Car {
     this.controls = new Controls();
   }
 
+  /**
+   * Updates the car's position and speed based on controls.
+   * This method is called in each animation frame to update the car's state.
+   * @returns {void}
+   * */
+  // The update method is responsible for moving the car based on the current controls.
   update() {
     this.#move(); // Move the car based on controls
   }
 
+  /** * Moves the car based on its speed, angle, and controls.
+   * This method adjusts the car's speed, applies friction, and updates its position.
+   * @returns {void}
+   * */
   #move() {
     if (this.controls.forward) {
       this.speed += this.acceleration; // Accelerate
@@ -63,6 +73,12 @@ class Car {
     this.y -= Math.cos(this.angle) * this.speed;
   }
 
+  /**
+   * Draws the car on the canvas.
+   * This method uses the canvas context to render the car at its current position and angle.
+   * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+   * @returns {void}
+   * */
   draw(ctx) {
     ctx.save();
     ctx.translate(this.x, this.y);
