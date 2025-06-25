@@ -15,6 +15,10 @@ class Car {
   }
 
   update() {
+    this.#move(); // Move the car based on controls
+  }
+
+  #move() {
     if (this.controls.forward) {
       this.speed += this.acceleration; // Accelerate
     }
@@ -56,7 +60,7 @@ class Car {
     }
 
     this.x -= Math.sin(this.angle) * this.speed; // Move left or right based on angle and speed
-    this.y -= Math.cos(this.angle) * this.speed; // Move up or down based on angle and speed
+    this.y -= Math.cos(this.angle) * this.speed;
   }
 
   draw(ctx) {
