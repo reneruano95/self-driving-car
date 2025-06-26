@@ -12,6 +12,7 @@
  * @property {number} maxSpeed - The maximum speed the car can reach (default: 3).
  * @property {number} friction - The friction applied to the car's speed (default: 0.05).
  * @property {number} angle - The angle of the car's orientation (default: 0).
+ * @property {Sensor} sensor - The sensor for detecting obstacles or road boundaries.
  * @property {Controls} controls - The controls for the car's movement.
  *
  * @method update - Updates the car's position and speed based on controls.
@@ -31,7 +32,8 @@ class Car {
     this.friction = 0.05;
     this.angle = 0;
 
-    this.controls = new Controls();
+    this.sensor = new Sensor(this); // Initialize the sensor for the car
+    this.controls = new Controls(); // Initialize the controls for the car
   }
 
   /**
@@ -39,13 +41,15 @@ class Car {
    * This method is called in each animation frame to update the car's state.
    * @returns {void}
    * */
-  // The update method is responsible for moving the car based on the current controls.
-  update() {
+  update(roadBorders) {
     this.#move(); // Move the car based on controls
+    this.sensor.update(roadBorders); // Update the sensor rays based on the car's position and angle
   }
 
-  /** * Moves the car based on its speed, angle, and controls.
+  /**
+   * Moves the car based on its speed, angle, and controls.
    * This method adjusts the car's speed, applies friction, and updates its position.
+   * @private
    * @returns {void}
    * */
   #move() {
@@ -109,5 +113,7 @@ class Car {
     ctx.fill();
 
     ctx.restore();
+
+    this.sensor.draw(ctx); // Draw the sensor rays
   }
 }
