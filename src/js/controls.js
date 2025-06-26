@@ -1,3 +1,16 @@
+/**
+ * Manages keyboard inputs for car movement.
+ * Listens for key events and updates the state of the car's controls.
+ *
+ * @class Controls
+ * @property {boolean} forward - Indicates if the forward key is pressed (default: false).
+ * @property {boolean} left - Indicates if the left key is pressed (default: false).
+ * @property {boolean} right - Indicates if the right key is pressed (default: false).
+ * @property {boolean} reverse - Indicates if the reverse key is pressed (default: false).
+ *
+ * @method #addKeyboardListeners - Adds event listeners for keyboard inputs to update control states.
+ */
+
 class Controls {
   constructor() {
     this.forward = false;

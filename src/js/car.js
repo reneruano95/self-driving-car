@@ -1,3 +1,23 @@
+/**
+ * Represents a car in a 2D space.
+ * Handles the car's position, speed, acceleration, and controls.
+ *
+ * @class Car
+ * @property {number} x - The x-coordinate of the car's position.
+ * @property {number} y - The y-coordinate of the car's position.
+ * @property {number} width - The width of the car.
+ * @property {number} height - The height of the car.
+ * @property {number} speed - The current speed of the car (default: 0).
+ * @property {number} acceleration - The rate at which the car accelerates (default: 0.2).
+ * @property {number} maxSpeed - The maximum speed the car can reach (default: 3).
+ * @property {number} friction - The friction applied to the car's speed (default: 0.05).
+ * @property {number} angle - The angle of the car's orientation (default: 0).
+ * @property {Controls} controls - The controls for the car's movement.
+ *
+ * @method update - Updates the car's position and speed based on controls.
+ * @method draw - Draws the car on the canvas at its current position and angle.
+ * @method #move - Adjusts the car's speed, applies friction, and updates its position.
+ */
 class Car {
   constructor(x, y, width, height) {
     this.x = x;

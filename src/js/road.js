@@ -1,3 +1,24 @@
+/**
+ * Road class representing a road with multiple lanes.
+ * Provides methods to calculate lane centers and draw the road with lane markings.
+ *
+ * @class Road
+ * @property {number} x - The x-coordinate of the center of the road.
+ * @property {number} width - The total width of the road.
+ * @property {number} laneCount - The number of lanes on the road (default: 3).
+ * @property {number} left - The x-coordinate of the left edge of the road.
+ * @property {number} right - The x-coordinate of the right edge of the road.
+ * @property {number} top - The y-coordinate of the top edge of the road.
+ * @property {number} bottom - The y-coordinate of the bottom edge of the road.
+ * @property {Array} borders - An array of road borders, each represented by two points (top and bottom).
+ *
+ * @method getLaneCenter - Calculates the center of a specific lane.
+ * @param {number} laneIndex - The index of the lane (0-based).
+ * @return {number} The x-coordinate of the center of the specified lane.
+ *
+ * @method draw - Draws the road and its lane markings on the canvas.
+ * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+ */
 class Road {
   constructor(x, width, laneCount = 3) {
     this.x = x;
