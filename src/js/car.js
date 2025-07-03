@@ -12,6 +12,7 @@
  * @property {number} maxSpeed - The maximum speed the car can reach (default: 3).
  * @property {number} friction - The friction applied to the car's speed (default: 0.05).
  * @property {number} angle - The angle of the car's orientation (default: 0).
+ * @property {boolean} damaged - Indicates if the car is damaged (default: false).
  * @property {Sensor} sensor - The sensor for detecting obstacles or road boundaries.
  * @property {Controls} controls - The controls for the car's movement.
  *
@@ -38,17 +39,22 @@ class Car {
   }
 
   /**
-   * Updates the car's position and speed based on controls.
-   * This method is called in each animation frame to update the car's state.
+   * Updates the car's state, including its position, shape, and collision status.
+   *
+   * Checks if the car is damaged, moves the car based on controls, creates a polygon
+   * representing the car's shape, and assesses collisions with road borders. Also updates
+   * the sensor rays based on the car's position and angle.
+   *
+   * @param {Array} roadBorders - Represents the road borders to check for collisions.
    * @returns {void}
-   * */
+   */
   update(roadBorders) {
     if (!this.damaged) {
       this.#move(); // Move the car based on controls
       this.polygon = this.#createPolygon(); // Create the polygon representing the car's shape
       this.damaged = this.#assessDamage(roadBorders); // Check if the car is damaged by road borders
+      this.sensor.update(roadBorders); // Update the sensor rays based on the car's position and angle
     }
-    this.sensor.update(roadBorders); // Update the sensor rays based on the car's position and angle
   }
 
   /**
