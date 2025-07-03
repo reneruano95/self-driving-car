@@ -42,3 +42,33 @@ function getIntersection(A, B, C, D) {
     }
   }
 }
+
+/**
+ * Checks if two polygons intersect.
+ *
+ * @param {Array} poly1 - The first polygon, represented as an array of points [{x, y}, ...].
+ * @param {Array} poly2 - The second polygon, represented as an array of points [{x, y}, ...].
+ * @returns {boolean} True if the polygons intersect, false otherwise.
+ * @example
+ * const poly1 = [{x: 0, y: 0}, {x: 10, y: 0}, {x: 10, y: 10}, {x: 0, y: 10}];
+ * const poly2 = [{x: 5, y: 5}, {x: 15, y: 5}, {x: 15, y: 15}, {x: 5, y: 15}];
+ * const intersects = polysIntersect(poly1, poly2); // Returns true
+ */
+
+function polysIntersect(poly1, poly2) {
+  for (let i = 0; i < poly1.length; i++) {
+    const A = poly1[i];
+    const B = poly1[(i + 1) % poly1.length];
+
+    for (let j = 0; j < poly2.length; j++) {
+      const C = poly2[j];
+      const D = poly2[(j + 1) % poly2.length];
+
+      const intersection = getIntersection(A, B, C, D);
+      if (intersection) {
+        return true; // Return true if any intersection is found
+      }
+    }
+  }
+  return false; // No intersections found
+}

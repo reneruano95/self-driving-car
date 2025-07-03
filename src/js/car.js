@@ -31,6 +31,7 @@ class Car {
     this.maxSpeed = 3;
     this.friction = 0.05;
     this.angle = 0;
+    this.damaged = false; // Indicates if the car is damaged
 
     this.sensor = new Sensor(this); // Initialize the sensor for the car
     this.controls = new Controls(); // Initialize the controls for the car
@@ -42,9 +43,27 @@ class Car {
    * @returns {void}
    * */
   update(roadBorders) {
-    this.#move(); // Move the car based on controls
-    this.polygon = this.#createPolygon(); // Create the polygon representing the car's shape
+    if (!this.damaged) {
+      this.#move(); // Move the car based on controls
+      this.polygon = this.#createPolygon(); // Create the polygon representing the car's shape
+      this.damaged = this.#assessDamage(roadBorders); // Check if the car is damaged by road borders
+    }
     this.sensor.update(roadBorders); // Update the sensor rays based on the car's position and angle
+  }
+
+  /**
+   * Checks if the car is damaged based on its collision with road borders.
+   * @private
+   * @param {Array} roadBorders - The road borders to check for collisions.
+   * @returns {boolean} True if the car is damaged, false otherwise.
+   * */
+  #assessDamage(roadBorders) {
+    for (let i = 0; i < roadBorders.length; i++) {
+      if (polysIntersect(this.polygon, roadBorders[i])) {
+        return true; // Car is damaged if it collides with any road border
+      }
+    }
+    return false; // Car is not damaged if no collisions are detected
   }
 
   /**
@@ -134,6 +153,12 @@ class Car {
    * @returns {void}
    * */
   draw(ctx) {
+    if (this.damaged) {
+      ctx.fillStyle = "red"; // Set color to red if the car is damaged
+    } else {
+      ctx.fillStyle = "black"; // Set color to black if the car is not damaged
+    }
+
     ctx.beginPath(); // Start a new path for the car
     ctx.moveTo(this.polygon[0].x, this.polygon[0].y); // Move to the first point of the polygon
     for (let i = 1; i < this.polygon.length; i++) {
