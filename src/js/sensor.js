@@ -118,8 +118,8 @@ class Sensor {
   draw(ctx) {
     for (let i = 0; i < this.rayCount; i++) {
       const ray = this.rays[i]; // Get the current ray
-
       let end = ray[1]; // Default end point of the ray
+
       if (this.readings[i]) {
         end = this.readings[i]; // If a reading exists, use it as the end point
       }

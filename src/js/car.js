@@ -43,7 +43,37 @@ class Car {
    * */
   update(roadBorders) {
     this.#move(); // Move the car based on controls
+    this.polygon = this.#createPolygon(); // Create the polygon representing the car's shape
     this.sensor.update(roadBorders); // Update the sensor rays based on the car's position and angle
+  }
+
+  /**
+   * Creates a polygon representing the car's shape based on its position, angle, width, and height.
+   * @private
+   * @returns {Array} An array of points representing the car's polygon.
+   */
+  #createPolygon() {
+    const points = [];
+    const rad = Math.hypot(this.width, this.height) / 2; // Calculate the radius of the car
+    const alpha = Math.atan2(this.width, this.height); // Calculate the angle of the car
+
+    points.push({
+      x: this.x - Math.sin(this.angle - alpha) * rad,
+      y: this.y - Math.cos(this.angle - alpha) * rad,
+    });
+    points.push({
+      x: this.x - Math.sin(this.angle + alpha) * rad,
+      y: this.y - Math.cos(this.angle + alpha) * rad,
+    });
+    points.push({
+      x: this.x - Math.sin(Math.PI + this.angle - alpha) * rad,
+      y: this.y - Math.cos(Math.PI + this.angle - alpha) * rad,
+    });
+    points.push({
+      x: this.x - Math.sin(Math.PI + this.angle + alpha) * rad,
+      y: this.y - Math.cos(Math.PI + this.angle + alpha) * rad,
+    });
+    return points;
   }
 
   /**
@@ -104,15 +134,12 @@ class Car {
    * @returns {void}
    * */
   draw(ctx) {
-    ctx.save();
-    ctx.translate(this.x, this.y);
-    ctx.rotate(-this.angle);
-
-    ctx.beginPath();
-    ctx.rect(-this.width / 2, -this.height / 2, this.width, this.height);
-    ctx.fill();
-
-    ctx.restore();
+    ctx.beginPath(); // Start a new path for the car
+    ctx.moveTo(this.polygon[0].x, this.polygon[0].y); // Move to the first point of the polygon
+    for (let i = 1; i < this.polygon.length; i++) {
+      ctx.lineTo(this.polygon[i].x, this.polygon[i].y); // Draw lines to the other points
+    }
+    ctx.fill(); // Fill the car shape
 
     this.sensor.draw(ctx); // Draw the sensor rays
   }
