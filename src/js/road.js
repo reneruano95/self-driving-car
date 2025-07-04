@@ -1,6 +1,7 @@
 /**
- * Road class representing a road with multiple lanes.
+ * Represents a road with multiple lanes for the self-driving car simulation.
  * Provides methods to calculate lane centers and draw the road with lane markings.
+ * The road's borders are used for collision detection.
  *
  * @class Road
  * @property {number} x - The x-coordinate of the center of the road.
@@ -11,15 +12,14 @@
  * @property {number} top - The y-coordinate of the top edge of the road.
  * @property {number} bottom - The y-coordinate of the bottom edge of the road.
  * @property {Array} borders - An array of road borders, each represented by two points (top and bottom).
- *
- * @method getLaneCenter - Calculates the center of a specific lane.
- * @param {number} laneIndex - The index of the lane (0-based).
- * @return {number} The x-coordinate of the center of the specified lane.
- *
- * @method draw - Draws the road and its lane markings on the canvas.
- * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
  */
 class Road {
+  /**
+   * Initializes the road with its position, width, and number of lanes.
+   * @param {number} x - The x-coordinate of the center of the road.
+   * @param {number} width - The total width of the road.
+   * @param {number} [laneCount=3] - The number of lanes on the road.
+   */
   constructor(x, width, laneCount = 3) {
     this.x = x;
     this.width = width;
@@ -36,19 +36,21 @@ class Road {
     const topRight = { x: this.right, y: this.top }; // Top right corner
     const bottomLeft = { x: this.left, y: this.bottom }; // Bottom left
     const bottomRight = { x: this.right, y: this.bottom }; // Bottom right
+
     // Borders of the road represented as pairs of points
     // Each border is an array of two points (top and bottom)
     this.borders = [
-      [topLeft, bottomLeft],
-      [topRight, bottomRight],
+      [topLeft, bottomLeft], // Left border
+      [topRight, bottomRight], // Right border
     ];
   }
 
   /**
    * Calculates the center of a specific lane.
+   * Ensures the lane index does not exceed the number of lanes.
    * @param {number} laneIndex - The index of the lane (0-based).
-   * @return {number} The x-coordinate of the center of the specified lane.
-   * */
+   * @returns {number} The x-coordinate of the center of the specified lane.
+   */
   getLaneCenter(laneIndex) {
     const laneWidth = this.width / this.laneCount; // Width of each lane
     return (
@@ -60,8 +62,10 @@ class Road {
 
   /**
    * Draws the road and its lane markings on the canvas.
+   * Uses dashed lines for lane markings and solid lines for road borders.
    * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
-   * */
+   * @returns {void} This method does not return a value.
+   */
   draw(ctx) {
     ctx.lineWidth = 5;
     ctx.strokeStyle = "white";

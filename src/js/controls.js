@@ -7,26 +7,41 @@
  * @property {boolean} left - Indicates if the left key is pressed (default: false).
  * @property {boolean} right - Indicates if the right key is pressed (default: false).
  * @property {boolean} reverse - Indicates if the reverse key is pressed (default: false).
- *
- * @method #addKeyboardListeners - Adds event listeners for keyboard inputs to update control states.
+ * @param {string} controlType - Specifies the type of control.
+ *                                Accepts "KEYS" for keyboard input or "DUMMY" for default forward movement.
  */
-
 class Controls {
-  constructor() {
+  /**
+   * Initializes the control states and sets up listeners based on the control type.
+   * @param {string} controlType - The type of control ("KEYS" or "DUMMY").
+   */
+  constructor(controlType) {
     this.forward = false;
     this.left = false;
     this.right = false;
     this.reverse = false;
 
-    this.#addKeyboardListeners();
+    switch (controlType) {
+      case "KEYS":
+        this.#addKeyboardListeners();
+        break;
+      case "DUMMY":
+        this.forward = true;
+        break;
+    }
   }
 
   /**
    * Adds keyboard listeners to control the car's movement.
-   * This method listens for keydown and keyup events to update the control states.
-   * @returns {void}
-   * */
-
+   * This private method listens for `keydown` and `keyup` events to update the control states.
+   * Supported keys:
+   * - ArrowLeft: Moves the car left.
+   * - ArrowRight: Moves the car right.
+   * - ArrowUp: Moves the car forward.
+   * - ArrowDown: Moves the car in reverse.
+   * @private
+   * @returns {void} This method does not return a value.
+   */
   #addKeyboardListeners() {
     document.onkeydown = (e) => {
       switch (e.key) {
