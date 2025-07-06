@@ -9,12 +9,18 @@ const networkCanvasContext = networkCanvas.getContext("2d");
 
 const road = new Road(carCanvas.width / 2, carCanvas.width * 0.9);
 
-const N = 100; // Number of AI cars to generate
+const N = 500; // Number of AI cars to generate
 const cars = generateCars(N); // Generate AI cars
 let bestCar = cars[0]; // Initialize the best car as the first AI car
 
 if (localStorage.getItem("bestBrain")) {
-  bestCar.brain = JSON.parse(localStorage.getItem("bestBrain")); // Load the saved brain from local storage
+  for (let i = 0; i < cars.length; i++) {
+    cars[i].brain = JSON.parse(localStorage.getItem("bestBrain")); // Load the saved brain for each AI car
+
+    if (i !== 0) {
+      NeuralNetwork.mutate(cars[i].brain, 0.1); // Mutate the brain of each AI car except the first one
+    }
+  }
 }
 
 const traffic = [];
@@ -22,7 +28,7 @@ const lanes = road.laneCount;
 const trafficSpacing = 180; // Fixed spacing between traffic cars
 const trafficStartY = -100; // Starting Y position for traffic cars
 
-for (let i = 0; i < 10; i++) {
+for (let i = 0; i < 50; i++) {
   const lane = i % lanes; // Cycle through lanes consistently
   const y = trafficStartY - i * trafficSpacing; // Staggered Y positions
   traffic.push(new Car(road.getLaneCenter(lane), y, 30, 50, "DUMMY", 2));
