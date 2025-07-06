@@ -17,7 +17,16 @@ if (localStorage.getItem("bestBrain")) {
   bestCar.brain = JSON.parse(localStorage.getItem("bestBrain")); // Load the saved brain from local storage
 }
 
-const traffic = [new Car(road.getLaneCenter(1), -100, 30, 50, "DUMMY", 2)];
+const traffic = [];
+const lanes = road.laneCount;
+const trafficSpacing = 180; // Fixed spacing between traffic cars
+const trafficStartY = -100; // Starting Y position for traffic cars
+
+for (let i = 0; i < 10; i++) {
+  const lane = i % lanes; // Cycle through lanes consistently
+  const y = trafficStartY - i * trafficSpacing; // Staggered Y positions
+  traffic.push(new Car(road.getLaneCenter(lane), y, 30, 50, "DUMMY", 2));
+}
 
 animate();
 
