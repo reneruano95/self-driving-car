@@ -2,14 +2,17 @@
 
 ## Overview
 
-This project is a simple self-driving car simulation built using HTML, CSS, and JavaScript. It demonstrates basic concepts of physics, controls, and rendering in a 2D space. The simulation includes a car that can be controlled using keyboard inputs to move along a road with multiple lanes.
+This project is a self-driving car simulation built using HTML, CSS, and JavaScript. It demonstrates basic concepts of physics, controls, neural networks, and rendering in a 2D space. The simulation includes AI-driven cars that learn to navigate a road with traffic.
 
 ## Features
 
-- **Car Movement**: The car can accelerate, decelerate, and turn left or right based on keyboard inputs.
-- **Road with Lanes**: A road with multiple lanes is rendered, including lane markings and borders.
-- **Physics Simulation**: Basic physics concepts like acceleration, friction, and speed limits are implemented.
-- **Canvas Rendering**: The simulation is rendered on an HTML canvas element.
+- **AI-Driven Cars**: Simulates multiple cars controlled by neural networks.
+- **Traffic Simulation**: Includes dummy cars to simulate real-world traffic.
+- **Neural Network Visualization**: Visualizes the neural network's structure and activity.
+- **Car Movement**: Cars can accelerate, decelerate, and turn left or right.
+- **Road with Lanes**: A road with multiple lanes, lane markings, and borders.
+- **Physics Simulation**: Implements acceleration, friction, and speed limits.
+- **Canvas Rendering**: Renders the simulation on HTML canvas elements.
 
 ## File Structure
 
@@ -23,9 +26,12 @@ self-driving-car/
 │   ├── js/
 │   │   ├── car.js       # Car class implementation
 │   │   ├── controls.js  # Keyboard controls for the car
+│   │   ├── main.js      # Main script to initialize and animate the simulation
+│   │   ├── network.js   # Neural network implementation
 │   │   ├── road.js      # Road class with lane management
+│   │   ├── sensor.js    # Implements the sensor class for detecting obstacles
 │   │   ├── utils.js     # Utility functions (e.g., linear interpolation)
-│   │   └── main.js      # Main script to initialize and animate the simulation
+│   │   └── visualizer.js # Neural network visualization
 └── README.md            # Project documentation
 ```
 
@@ -36,6 +42,7 @@ self-driving-car/
    git clone <repository-url>
    ```
 2. Open the `public/index.html` file in a web browser.
+   - Note: If the project uses `fetch` or other features requiring a server, use a local server (e.g., `Live Server` in VS Code).
 
 ## Controls
 
@@ -43,6 +50,7 @@ self-driving-car/
 - **Arrow Down**: Move backward
 - **Arrow Left**: Turn left
 - **Arrow Right**: Turn right
+- Note: The default control type is "AI" for autonomous driving.
 
 ## Classes and Methods
 
@@ -51,11 +59,11 @@ self-driving-car/
 - **Properties**:
   - `x`, `y`: Position of the car.
   - `width`, `height`: Dimensions of the car.
-  - `speed`, `acceleration`, `maxSpeed`, `friction`: Physics properties.
-  - `angle`: Orientation of the car.
   - `controls`: Instance of the `Controls` class.
+  - `sensor`: Instance of the `Sensor` class (optional).
+  - `brain`: Neural network controlling the car.
 - **Methods**:
-  - `update()`: Updates the car's position and speed.
+  - `update()`: Updates the car's position, speed, and collision status.
   - `draw(ctx)`: Draws the car on the canvas.
 
 ### Controls
@@ -69,16 +77,45 @@ self-driving-car/
 
 - **Properties**:
   - `x`, `width`, `laneCount`: Dimensions and lane configuration.
-  - `left`, `right`, `top`, `bottom`: Edges of the road.
   - `borders`: Array of road borders.
 - **Methods**:
   - `getLaneCenter(laneIndex)`: Calculates the center of a specific lane.
   - `draw(ctx)`: Draws the road and its lane markings.
 
+### NeuralNetwork
+
+- **Properties**:
+  - `levels`: Array of levels representing the layers of the neural network.
+- **Methods**:
+  - `feedForward(inputs)`: Processes inputs through the network.
+  - `mutate(amount)`: Applies random changes to the network's weights and biases.
+
+### Visualizer
+
+- **Methods**:
+  - `drawNetwork(ctx, network)`: Visualizes the neural network on a canvas.
+
 ### Utils
 
 - **lerp(A, B, t)**: Linear interpolation between two values.
+- **getIntersection(A, B, C, D)**: Calculates the intersection point of two line segments.
+- **polysIntersect(poly1, poly2)**: Checks if two polygons intersect.
+- **getRGBA(value)**: Converts a numerical value to an RGBA color string.
+
+### Sensor
+
+- **Purpose**: Used for detecting obstacles and road boundaries.
+- **Properties**:
+  - `car`: The car that the sensor is attached to.
+  - `rayCount`: Number of rays cast by the sensor.
+  - `rayLength`: Length of each ray.
+  - `raySpread`: Angle spread of the rays.
+  - `rays`: Array of rays, each represented by two points (start and end).
+  - `readings`: Array of readings from the rays, representing intersections with road borders or traffic.
+- **Methods**:
+  - `update(roadBorders, traffic)`: Updates the rays and readings based on the car's position and angle.
+  - `draw(ctx)`: Draws the rays and their intersections on the canvas.
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
