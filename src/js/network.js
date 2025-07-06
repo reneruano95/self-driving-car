@@ -31,7 +31,25 @@ class NeuralNetwork {
     return outputs;
   }
 
+  /**
+   * Mutates the weights and biases of a neural network.
+   *
+   * This method applies random changes to the weights and biases of each level in the network.
+   * The degree of mutation is controlled by the `amount` parameter, which determines the
+   * interpolation factor between the current value and a random value.
+   *
+   * @static
+   * @param {NeuralNetwork} network - The neural network to mutate.
+   * @param {number} [amount=1] - The mutation intensity (default: 1). A higher value results in more significant changes.
+   * @returns {void} This method does not return a value.
+   * @example
+   * NeuralNetwork.mutate(myNetwork, 0.1); // Mutates the network with a low intensity
+   */
   static mutate(network, amount = 1) {
+    if (amount < 0 || amount > 1) {
+      throw new Error("Mutation amount must be between 0 and 1.");
+    }
+
     network.levels.forEach((level) => {
       for (let i = 0; i < level.biases.length; i++) {
         level.biases[i] = lerp(level.biases[i], Math.random() * 2 - 1, amount);
