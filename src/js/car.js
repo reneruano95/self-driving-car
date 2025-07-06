@@ -209,9 +209,10 @@ class Car {
    *
    * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
    * @param {string} [color="black"] - The color to fill the car shape with (default: "black").
+   * @param {boolean} [drawSensor=false] - Whether to draw the sensor rays (default: false).
    * @returns {void}
    */
-  draw(ctx, color) {
+  draw(ctx, color, drawSensor = false) {
     if (this.damaged) {
       ctx.fillStyle = "gray"; // Set color to gray if the car is damaged
     } else {
@@ -224,7 +225,7 @@ class Car {
       ctx.lineTo(this.polygon[i].x, this.polygon[i].y); // Draw lines to the other points
     }
     ctx.fill(); // Fill the car shape
-    if (this.sensor) {
+    if (this.sensor && drawSensor) {
       this.sensor.draw(ctx); // Draw the sensor rays if the sensor exists
     }
   }
