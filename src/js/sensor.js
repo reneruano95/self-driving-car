@@ -23,7 +23,7 @@ class Sensor {
   constructor(car) {
     this.car = car;
     this.rayCount = 5; // Number of rays to cast
-    this.rayLength = 100; // Length of each ray
+    this.rayLength = 150; // Length of each ray
     this.raySpread = Math.PI / 2; // Spread angle of the rays
 
     this.rays = []; // Array to hold the rays

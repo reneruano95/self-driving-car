@@ -1,31 +1,39 @@
-const canvas = document.getElementById("myCanvas");
-canvas.width = 200;
+const carCanvas = document.getElementById("carCanvas");
+carCanvas.width = 200;
 
-const ctx = canvas.getContext("2d");
+const networkCanvas = document.getElementById("networkCanvas");
+networkCanvas.width = 300;
 
-const road = new Road(canvas.width / 2, canvas.width * 0.9);
-const car = new Car(road.getLaneCenter(2), 100, 30, 50, "KEYS");
+const carCanvasContext = carCanvas.getContext("2d");
+const networkCanvasContext = networkCanvas.getContext("2d");
+
+const road = new Road(carCanvas.width / 2, carCanvas.width * 0.9);
+const car = new Car(road.getLaneCenter(1), 100, 30, 50, "AI");
 const traffic = [new Car(road.getLaneCenter(1), -100, 30, 50, "DUMMY", 2)];
 
 animate();
 
-function animate() {
+function animate(time) {
   for (let i = 0; i < traffic.length; i++) {
     traffic[i].update(road.borders, []); // Update each traffic car
   }
   car.update(road.borders, traffic);
 
-  canvas.height = window.innerHeight;
+  carCanvas.height = window.innerHeight;
+  networkCanvas.height = window.innerHeight;
 
-  ctx.save(); // Save the current state of the canvas
-  ctx.translate(0, -car.y + canvas.height * 0.7); // Center the road on the car
+  carCanvasContext.save(); // Save the current state of the canvas
+  carCanvasContext.translate(0, -car.y + carCanvas.height * 0.7); // Center the road on the car
 
-  road.draw(ctx); // Draw the road
+  road.draw(carCanvasContext); // Draw the road
   for (let i = 0; i < traffic.length; i++) {
-    traffic[i].draw(ctx, "red"); // Draw each traffic car
+    traffic[i].draw(carCanvasContext, "red"); // Draw each traffic car
   }
-  car.draw(ctx, "blue"); // Draw the car
+  car.draw(carCanvasContext, "blue"); // Draw the car
 
-  ctx.restore();
+  carCanvasContext.restore();
+
+  networkCanvasContext.lineDashOffset = -time / 50; // Animate the line dash offset for the neural network visualization
+  Visualizer.drawNetwork(networkCanvasContext, car.brain); // Draw the neural network
   requestAnimationFrame(animate);
 }

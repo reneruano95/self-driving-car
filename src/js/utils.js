@@ -72,3 +72,24 @@ function polysIntersect(poly1, poly2) {
   }
   return false; // No intersections found
 }
+
+/**
+ * Converts a numerical value to an RGBA color string.
+ *
+ * The function maps the input value to a color gradient:
+ * - Positive values are mapped to shades of red.
+ * - Negative values are mapped to shades of blue.
+ * - The alpha channel represents the absolute value of the input.
+ *
+ * @param {number} value - The input value to be converted to an RGBA color.
+ * @returns {string} The RGBA color string representing the input value.
+ * @example
+ * const color = getRGBA(0.5); // Returns "rgba(255,255,0,0.5)"
+ */
+function getRGBA(value) {
+  const alpha = Math.abs(value);
+  const R = value < 0 ? 0 : 255;
+  const G = R;
+  const B = value > 0 ? 0 : 255;
+  return "rgba(" + R + "," + G + "," + B + "," + alpha + ")";
+}

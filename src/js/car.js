@@ -46,8 +46,16 @@ class Car {
     this.angle = 0; // Angle of the car's orientation in radians
     this.damaged = false; // Indicates if the car is damaged
 
+    this.useBrain = controlType === "AI"; // Use a neural network for AI control
+
     if (controlType !== "DUMMY") {
       this.sensor = new Sensor(this); // Initialize the sensor for the car
+
+      this.brain = new NeuralNetwork([
+        this.sensor.rayCount, // Number of rays in the sensor
+        6, // Hidden layer with 6 neurons
+        4, // Hidden layer with 4 neurons
+      ]); // Initialize the neural network for the car
     }
     this.controls = new Controls(controlType); // Initialize the controls for the car
   }
@@ -71,6 +79,20 @@ class Car {
     }
     if (this.sensor) {
       this.sensor.update(roadBorders, traffic); // Update the sensor rays based on the car's position and angle
+
+      const offsets = this.sensor.readings.map((s) =>
+        s === null ? 0 : 1 - s.offset
+      ); // Get sensor readings
+
+      const outputs = NeuralNetwork.feedForward(offsets, this.brain); // Feed the sensor readings into the neural network
+      // console.log(outputs); // Log the outputs of the neural network
+
+      if (this.useBrain) {
+        this.controls.forward = outputs[0]; // Set forward control based on neural network output
+        this.controls.left = outputs[1]; // Set left control based on neural network output
+        this.controls.right = outputs[2]; // Set right control based on neural network output
+        this.controls.reverse = outputs[3]; // Set reverse control based on neural network output
+      }
     }
   }
 
