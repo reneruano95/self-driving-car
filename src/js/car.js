@@ -13,7 +13,9 @@
  * @property {number} friction - The friction applied to the car's speed (default: 0.05).
  * @property {number} angle - The angle of the car's orientation in radians (default: 0).
  * @property {boolean} damaged - Indicates if the car is damaged (default: false).
+ * @property {boolean} useBrain - Indicates if the car uses a neural network for AI control (default: false).
  * @property {Sensor} [sensor] - The sensor for detecting obstacles or road boundaries (optional).
+ * @property {NeuralNetwork} [brain] - The neural network for AI control (optional).
  * @property {Controls} controls - The controls for the car's movement.
  *
  * @method update - Updates the car's state, including its position, shape, and collision status.
