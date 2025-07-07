@@ -1,5 +1,7 @@
 # Self-Driving Car Simulation
 
+![Self-Driving Car Simulation](images/self-driving-car.png)
+
 ## Overview
 
 This project is a self-driving car simulation built using HTML, CSS, and JavaScript. It demonstrates basic concepts of physics, controls, neural networks, and rendering in a 2D space. The simulation includes AI-driven cars that learn to navigate a road with traffic.
