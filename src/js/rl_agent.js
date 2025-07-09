@@ -42,7 +42,7 @@ class RLAgent {
    * For high-dimensional or highly variable states, consider coarser discretization.
    */
   _stateKey(state) {
-    return state.map(x => x.toFixed(2)).join(',');
+    return state.map((x) => x.toFixed(2)).join(",");
   }
 
   /**
@@ -56,6 +56,7 @@ class RLAgent {
     }
     const key = this._stateKey(state);
     const qValues = this.qTable[key] || Array(this.actionSize).fill(0);
+
     return qValues.indexOf(Math.max(...qValues));
   }
 
@@ -77,14 +78,27 @@ class RLAgent {
    */
   learn() {
     if (this.memory.length === 0) return;
-    const { state, action, reward, nextState, done } = this.memory[Math.floor(Math.random() * this.memory.length)];
+    const { state, action, reward, nextState, done } =
+      this.memory[Math.floor(Math.random() * this.memory.length)];
+
     const key = this._stateKey(state);
     const nextKey = this._stateKey(nextState);
-    if (!this.qTable[key]) this.qTable[key] = Array(this.actionSize).fill(0);
-    if (!this.qTable[nextKey]) this.qTable[nextKey] = Array(this.actionSize).fill(0);
-    const target = reward + (done ? 0 : this.gamma * Math.max(...this.qTable[nextKey]));
-    this.qTable[key][action] += this.learningRate * (target - this.qTable[key][action]);
-    if (this.epsilon > this.epsilonMin) this.epsilon *= this.epsilonDecay;
+
+    if (!this.qTable[key]) {
+      this.qTable[key] = Array(this.actionSize).fill(0);
+    }
+    if (!this.qTable[nextKey]) {
+      this.qTable[nextKey] = Array(this.actionSize).fill(0);
+    }
+
+    const target =
+      reward + (done ? 0 : this.gamma * Math.max(...this.qTable[nextKey]));
+
+    this.qTable[key][action] +=
+      this.learningRate * (target - this.qTable[key][action]);
+
+    if (this.epsilon > this.epsilonMin) {
+      this.epsilon *= this.epsilonDecay;
+    }
   }
 }
-
