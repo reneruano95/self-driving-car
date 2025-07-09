@@ -76,6 +76,7 @@ function stepRLCar() {
   let reward = 0;
   if (rlCar.damaged) {
     reward = -10;
+    localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable)); // Save Q-table after crash
   } else if (rlCar.speed > 0.1) {
     reward = 1;
   } else {
@@ -87,7 +88,7 @@ function stepRLCar() {
   rlAgent.storeExperience(state, action, reward, nextState, done);
   rlAgent.learn();
   rlStepCount++;
-  if (rlStepCount % 100 === 0) {
+  if (rlStepCount % 50 === 0) {
     localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
   }
 }
