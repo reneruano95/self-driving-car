@@ -1,16 +1,24 @@
 /**
- * DQN-like Reinforcement Learning Agent for Self-Driving Car Simulation (Pure JavaScript)
- * This is a minimal scaffold for integrating RL into your project.
+ * RLAgent: Tabular Q-learning Agent for Self-Driving Car Simulation (Pure JavaScript)
  *
- * State: Array of sensor readings, speed, etc.
- * Actions: [forward, left, right, reverse] (discrete)
+ * - State: Array of sensor readings, speed, etc. (discretized for Q-table)
+ * - Actions: [forward, left, right, reverse] (discrete indices)
  *
- * Methods:
- * - selectAction(state): returns an action index
- * - storeExperience(state, action, reward, nextState, done): stores experience for learning
- * - learn(): updates Q-network (placeholder for now)
+ * Usage:
+ *   const agent = new RLAgent(stateSize, actionSize);
+ *   // In simulation loop:
+ *   const action = agent.selectAction(state);
+ *   agent.storeExperience(state, action, reward, nextState, done);
+ *   agent.learn();
+ *
+ * Note: This is a simple Q-table implementation for demonstration.
+ * For large/continuous state spaces, replace with a neural network (DQN).
  */
 class RLAgent {
+  /**
+   * @param {number} stateSize - Number of dimensions in the state space.
+   * @param {number} actionSize - Number of possible discrete actions.
+   */
   constructor(stateSize, actionSize) {
     this.stateSize = stateSize;
     this.actionSize = actionSize;
@@ -24,12 +32,24 @@ class RLAgent {
     this.qTable = {};
   }
 
-  // Converts state array to a string key for Q-table
+  /**
+   * Converts a state array to a unique string key for Q-table indexing.
+   * Discretizes each state value to 2 decimal places to reduce Q-table size.
+   * @param {number[]} state - The state array (continuous values).
+   * @returns {string} A comma-separated string representing the discretized state.
+   *
+   * Note: The discretization level (2 decimals) affects generalization and table size.
+   * For high-dimensional or highly variable states, consider coarser discretization.
+   */
   _stateKey(state) {
     return state.map(x => x.toFixed(2)).join(',');
   }
 
-  // Epsilon-greedy action selection
+  /**
+   * Selects an action using epsilon-greedy policy.
+   * @param {number[]} state - Current state array.
+   * @returns {number} Action index.
+   */
   selectAction(state) {
     if (Math.random() < this.epsilon) {
       return Math.floor(Math.random() * this.actionSize);
@@ -39,13 +59,22 @@ class RLAgent {
     return qValues.indexOf(Math.max(...qValues));
   }
 
-  // Store experience (for future use with experience replay)
+  /**
+   * Stores an experience tuple for learning.
+   * @param {number[]} state - Current state array.
+   * @param {number} action - Action index taken.
+   * @param {number} reward - Reward received.
+   * @param {number[]} nextState - Next state array.
+   * @param {boolean} done - Whether the episode is done.
+   */
   storeExperience(state, action, reward, nextState, done) {
     this.memory.push({ state, action, reward, nextState, done });
     if (this.memory.length > 10000) this.memory.shift();
   }
 
-  // Simple Q-learning update (tabular, for demonstration)
+  /**
+   * Performs a Q-learning update using a random experience from memory.
+   */
   learn() {
     if (this.memory.length === 0) return;
     const { state, action, reward, nextState, done } = this.memory[Math.floor(Math.random() * this.memory.length)];
