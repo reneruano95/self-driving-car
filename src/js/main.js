@@ -63,7 +63,6 @@ function getRLState(car) {
 
 let rlStepCount = 0;
 function stepRLCar() {
-  if (rlCar.damaged) return;
   const state = getRLState(rlCar);
   const action = rlAgent.selectAction(state);
   // Map action index to controls
@@ -71,12 +70,20 @@ function stepRLCar() {
   rlCar.controls.left = action === 1;
   rlCar.controls.right = action === 2;
   rlCar.controls.reverse = action === 3;
+
   // --- RL reward calculation and experience storage ---
   // Reward: +1 for moving forward, -10 for crash, small penalty for not moving
   let reward = 0;
   if (rlCar.damaged) {
     reward = -10;
-    localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable)); // Save Q-table after crash
+    console.warn("RL Car crashed! Saving Q-table and reloading...");
+    try {
+      localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+    } catch (e) {
+      console.error("Failed to save Q-table:", e);
+    }
+    // Reload the page to reset the simulation after a crash
+    window.location.reload();
   } else if (rlCar.speed > 0.1) {
     reward = 1;
   } else {
@@ -89,7 +96,11 @@ function stepRLCar() {
   rlAgent.learn();
   rlStepCount++;
   if (rlStepCount % 50 === 0) {
-    localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+    try {
+      localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+    } catch (e) {
+      console.error("Failed to save Q-table:", e);
+    }
   }
 }
 
@@ -122,11 +133,6 @@ function animate(time) {
   rlCar.update(road.borders, traffic);
 
   bestCar = cars.find((c) => c.y === Math.min(...cars.map((c) => c.y))); // Find the best AI car based on y position
-
-  // bestCar = cars.reduce(
-  //   (prev, curr) => (curr.y < prev.y ? curr : prev),
-  //   cars[0]
-  // ); // Find the car with the minimum y value
 
   carCanvas.height = window.innerHeight;
   networkCanvas.height = window.innerHeight;
