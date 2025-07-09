@@ -88,6 +88,3 @@ class RLAgent {
   }
 }
 
-// Export for use in main.js
-// Usage: const agent = new RLAgent(stateSize, actionSize);
-// In the simulation loop: agent.selectAction(state), agent.storeExperience(...), agent.learn();
