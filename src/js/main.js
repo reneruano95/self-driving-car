@@ -34,6 +34,64 @@ for (let i = 0; i < 50; i++) {
   traffic.push(new Car(road.getLaneCenter(lane), y, 30, 50, "DUMMY", 2));
 }
 
+// RL Agent integration (for one car as a demo)
+let rlAgent;
+let rlCar;
+
+function setupRLCar() {
+  const stateSize = 6; // 5 sensor rays + 1 speed (adjust if needed)
+  const actionSize = 4; // [forward, left, right, reverse]
+  rlAgent = new RLAgent(stateSize, actionSize);
+  // Load Q-table from localStorage if available
+  const savedQTable = localStorage.getItem("rlQTable");
+  if (savedQTable) {
+    try {
+      rlAgent.qTable = JSON.parse(savedQTable);
+    } catch (e) {
+      rlAgent.qTable = {};
+    }
+  }
+  rlCar = new Car(road.getLaneCenter(0), 100, 30, 50, "PLAYER");
+}
+
+setupRLCar();
+
+function getRLState(car) {
+  const sensorReadings = car.sensor ? car.sensor.readings.map(s => (s === null ? 0 : 1 - s.offset)) : Array(5).fill(0);
+  return [...sensorReadings, car.speed];
+}
+
+let rlStepCount = 0;
+function stepRLCar() {
+  if (rlCar.damaged) return;
+  const state = getRLState(rlCar);
+  const action = rlAgent.selectAction(state);
+  // Map action index to controls
+  rlCar.controls.forward = action === 0;
+  rlCar.controls.left = action === 1;
+  rlCar.controls.right = action === 2;
+  rlCar.controls.reverse = action === 3;
+  // --- RL reward calculation and experience storage ---
+  // Reward: +1 for moving forward, -10 for crash, small penalty for not moving
+  let reward = 0;
+  if (rlCar.damaged) {
+    reward = -10;
+  } else if (rlCar.speed > 0.1) {
+    reward = 1;
+  } else {
+    reward = -0.01;
+  }
+  // Next state after action
+  const nextState = getRLState(rlCar);
+  const done = rlCar.damaged;
+  rlAgent.storeExperience(state, action, reward, nextState, done);
+  rlAgent.learn();
+  rlStepCount++;
+  if (rlStepCount % 100 === 0) {
+    localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+  }
+}
+
 animate();
 
 function save() {
@@ -59,6 +117,8 @@ function animate(time) {
   for (let i = 0; i < cars.length; i++) {
     cars[i].update(road.borders, traffic); // Update each AI car
   }
+  stepRLCar();
+  rlCar.update(road.borders, traffic);
 
   bestCar = cars.find((c) => c.y === Math.min(...cars.map((c) => c.y))); // Find the best AI car based on y position
 
@@ -71,7 +131,9 @@ function animate(time) {
   networkCanvas.height = window.innerHeight;
 
   carCanvasContext.save(); // Save the current state of the canvas
-  carCanvasContext.translate(0, -bestCar.y + carCanvas.height * 0.7);
+  // carCanvasContext.translate(0, -bestCar.y + carCanvas.height * 0.7); // Translate the canvas to center the best car vertically
+
+  carCanvasContext.translate(0, -rlCar.y + carCanvas.height * 0.7); // Translate the canvas to center the RL car vertically
 
   road.draw(carCanvasContext); // Draw the road
   for (let i = 0; i < traffic.length; i++) {
@@ -84,6 +146,8 @@ function animate(time) {
   }
   carCanvasContext.globalAlpha = 1; // Reset transparency for the main AI car
   bestCar.draw(carCanvasContext, "blue", true); // Draw the best AI car with sensor rays
+
+  rlCar.draw(carCanvasContext, "green", true);
 
   carCanvasContext.restore();
 
