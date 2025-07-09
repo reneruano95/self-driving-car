@@ -57,7 +57,9 @@ function setupRLCar() {
 setupRLCar();
 
 function getRLState(car) {
-  const sensorReadings = car.sensor ? car.sensor.readings.map(s => (s === null ? 0 : 1 - s.offset)) : Array(5).fill(0);
+  const sensorReadings = car.sensor
+    ? car.sensor.readings.map((s) => (s === null ? 0 : 1 - s.offset))
+    : Array(5).fill(0);
   return [...sensorReadings, car.speed];
 }
 
@@ -76,14 +78,13 @@ function stepRLCar() {
   let reward = 0;
   if (rlCar.damaged) {
     reward = -10;
-    console.warn("RL Car crashed! Saving Q-table and reloading...");
+    console.warn("RL Car crashed! Saving Q-table and resetting car...");
     try {
       localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
     } catch (e) {
       console.error("Failed to save Q-table:", e);
     }
-    // Reload the page to reset the simulation after a crash
-    window.location.reload();
+    resetRLCar();
   } else if (rlCar.speed > 0.1) {
     reward = 1;
   } else {
@@ -102,6 +103,40 @@ function stepRLCar() {
       console.error("Failed to save Q-table:", e);
     }
   }
+}
+
+function resetTraffic() {
+  traffic.length = 0;
+  const lanes = road.laneCount;
+  const trafficSpacing = 180;
+  const trafficStartY = -100;
+  for (let i = 0; i < 50; i++) {
+    const lane = i % lanes;
+    const y = trafficStartY - i * trafficSpacing;
+    traffic.push(new Car(road.getLaneCenter(lane), y, 30, 50, "DUMMY", 2));
+  }
+  // Immediately update all traffic cars to recalculate polygons
+  for (let i = 0; i < traffic.length; i++) {
+    traffic[i].update(road.borders, []);
+  }
+}
+
+function resetRLCar() {
+  rlCar.x = road.getLaneCenter(0);
+  rlCar.y = 100;
+  rlCar.speed = 0;
+  rlCar.angle = 0;
+  rlCar.damaged = false;
+  rlCar.controls.forward = false;
+  rlCar.controls.left = false;
+  rlCar.controls.right = false;
+  rlCar.controls.reverse = false;
+  if (rlCar.sensor && typeof rlCar.sensor.reset === "function") {
+    rlCar.sensor.reset();
+  }
+  resetTraffic();
+  // Immediately update RL car to recalculate polygon
+  rlCar.update(road.borders, traffic);
 }
 
 animate();
