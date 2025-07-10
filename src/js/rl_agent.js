@@ -36,16 +36,22 @@ class RLAgent {
 
   /**
    * Converts a state array to a unique string key for Q-table indexing.
-   * Discretizes each state value to 2 decimal places to reduce Q-table size.
+   * Discretizes each state value to reduce Q-table size while preserving important information.
    * @param {number[]} state - The state array (continuous values).
    * @returns {string} A comma-separated string representing the discretized state.
    *
-   * Note: The discretization level (2 decimals) affects generalization and table size.
+   * Note: The discretization level affects generalization and table size.
    * For high-dimensional or highly variable states, consider coarser discretization.
    */
   _stateKey(state) {
-    // Coarse discretization: round to nearest integer for each value
-    return state.map((x) => Math.round(x).toString()).join(",");
+    // More nuanced discretization: 1 decimal for sensor readings, round for others
+    return state.map((x, i) => {
+      if (i < 5) { // Sensor readings (first 5 elements)
+        return (Math.round(x * 10) / 10).toFixed(1);
+      } else { // Speed, angle, position
+        return Math.round(x * 100) / 100; // 2 decimal places
+      }
+    }).join(",");
   }
 
   /**
@@ -60,7 +66,11 @@ class RLAgent {
     const key = this._stateKey(state);
     const qValues = this.qTable[key] || Array(this.actionSize).fill(0);
 
-    return qValues.indexOf(Math.max(...qValues));
+    // Handle ties by random selection among best actions
+    const maxQ = Math.max(...qValues);
+    const bestActions = qValues.map((q, i) => q === maxQ ? i : -1).filter(i => i !== -1);
+    
+    return bestActions[Math.floor(Math.random() * bestActions.length)];
   }
 
   /**
@@ -73,20 +83,26 @@ class RLAgent {
    */
   storeExperience(state, action, reward, nextState, done) {
     this.memory.push({ state, action, reward, nextState, done });
-    if (this.memory.length > 10000) this.memory.shift();
+    // More efficient memory management - use circular buffer concept
+    if (this.memory.length > 10000) {
+      this.memory = this.memory.slice(-8000); // Keep most recent 8000 experiences
+    }
   }
 
   /**
    * Performs a Q-learning update using a batch of random experiences from memory.
-   * @param {number} batchSize - Number of experiences to sample per learning step (default: 16)
+   * @param {number} batchSize - Number of experiences to sample per learning step (default: uses constructor value)
    */
   learn(batchSize = this.batchSize) {
-    if (this.memory.length === 0) return;
+    if (this.memory.length < Math.min(batchSize, 100)) return; // Wait for sufficient experiences
+
     // Sample a batch of experiences
+    const actualBatchSize = Math.min(batchSize, this.memory.length);
     const batch = [];
-    for (let i = 0; i < batchSize; i++) {
+    for (let i = 0; i < actualBatchSize; i++) {
       batch.push(this.memory[Math.floor(Math.random() * this.memory.length)]);
     }
+
     for (const { state, action, reward, nextState, done } of batch) {
       const key = this._stateKey(state);
       const nextKey = this._stateKey(nextState);
@@ -105,7 +121,8 @@ class RLAgent {
         this.learningRate * (target - this.qTable[key][action]);
     }
 
-    if (this.epsilon > this.epsilonMin) {
+    // Decay epsilon less frequently (only when we have sufficient experiences)
+    if (this.memory.length > 500 && this.epsilon > this.epsilonMin) {
       this.epsilon *= this.epsilonDecay;
     }
   }
