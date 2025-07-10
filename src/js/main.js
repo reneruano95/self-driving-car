@@ -1,6 +1,8 @@
 const STATE_SIZE = 9; // 5 sensor rays + speed + angle + normalized x position + normalized y position
-const ACTION_SIZE = 7; // [forward, left, right, reverse]
+const ACTION_SIZE = 7; // [forward, forward+left, forward+right, reverse, left, right, no-op]
 const BATCH_SIZE = 32; // Default batch size for learning
+const SENSOR_OFFSET = 0.5; // Offset for sensor rays to avoid collision with the car's own polygon
+const STEPS_COUNT = 100; // Steps after which to save the Q-table
 
 const carCanvas = document.getElementById("carCanvas");
 carCanvas.width = 200;
@@ -52,7 +54,7 @@ function getRLState(car) {
   const angle = car.angle / Math.PI; // Normalize angle to [-1, 1]
   const xNorm = (car.x - road.left) / (road.right - road.left); // Normalize x to [0, 1] within road
   const yNorm = car.y / 1000; // Normalize y (assuming 1000 is a reasonable road length scale)
-   
+
   return [...sensorReadings, car.speed, angle, xNorm, yNorm];
 }
 
@@ -67,6 +69,7 @@ let lastEpisodeSteps = 0;
 function stepRLCar() {
   const state = getRLState(rlCar);
   const action = rlAgent.selectAction(state);
+
   // Improved action mapping: allow combinations
   rlCar.controls.forward = action === 0 || action === 1 || action === 2;
   rlCar.controls.left = action === 1 || action === 4;
@@ -92,6 +95,7 @@ function stepRLCar() {
     episodeReward = 0;
     episodeStep = 0;
     resetRLCar();
+
   } else {
     // Reward for moving forward
     if (rlCar.speed > 0.1) {
@@ -103,7 +107,7 @@ function stepRLCar() {
     // Penalty for being blocked by an obstacle ahead, and bonus for attempting to change lanes
     const centerIdx = Math.floor(rlCar.sensor.readings.length / 2);
     const frontSensor = rlCar.sensor && rlCar.sensor.readings[centerIdx]; // Assuming center ray
-    if (frontSensor && frontSensor.offset < 0.2) {
+    if (frontSensor && frontSensor.offset < SENSOR_OFFSET) {
       // Very close obstacle ahead
       reward -= 2; // Penalize for being blocked
       if (rlCar.controls.left || rlCar.controls.right) {
@@ -124,7 +128,7 @@ function stepRLCar() {
   rlAgent.storeExperience(state, action, reward, nextState, done);
   rlAgent.learn();
   rlStepCount++;
-  if (rlStepCount % 50 === 0) {
+  if (rlStepCount % STEPS_COUNT === 0) {
     try {
       localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
     } catch (e) {
