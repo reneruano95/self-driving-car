@@ -1,20 +1,30 @@
 # Self-Driving Car Simulation
 
 ![Self-Driving Car Simulation](images/self-driving-car.png)
-
+ 
 ## Overview
 
-This project is a self-driving car simulation built using HTML, CSS, and JavaScript. It demonstrates basic concepts of physics, controls, neural networks, and rendering in a 2D space. The simulation includes AI-driven cars that learn to navigate a road with traffic.
+This project is a self-driving car simulation built using HTML, CSS, and JavaScript. It demonstrates basic concepts of physics, controls, neural networks, reinforcement learning, and rendering in a 2D space. The simulation includes AI-driven cars that learn to navigate a road with traffic.
 
 ## Features
 
 - **AI-Driven Cars**: Simulates multiple cars controlled by neural networks.
+- **Reinforcement Learning Agent**: Includes a car controlled by a Q-learning RL agent that learns to drive through trial and error, with its progress saved automatically.
 - **Traffic Simulation**: Includes dummy cars to simulate real-world traffic.
 - **Neural Network Visualization**: Visualizes the neural network's structure and activity.
 - **Car Movement**: Cars can accelerate, decelerate, and turn left or right.
 - **Road with Lanes**: A road with multiple lanes, lane markings, and borders.
 - **Physics Simulation**: Implements acceleration, friction, and speed limits.
 - **Canvas Rendering**: Renders the simulation on HTML canvas elements.
+
+## Reinforcement Learning Implementation
+![Self-Driving Car Simulation](images/rl-car.png)
+
+- The RL agent uses a Q-learning algorithm (tabular, pure JavaScript) to learn optimal driving actions based on sensor readings and speed.
+- The agent receives positive rewards for moving forward, negative rewards for crashes, and small penalties for inactivity.
+- The Q-table is automatically saved to the browser's localStorage every 50 steps and after each crash, so learning progress is preserved across reloads.
+- You can export the Q-table as a JSON file for backup or sharing.
+- The RL car is visualized in green, and its average reward is displayed on the simulation canvas.
 
 ## File Structure
 
@@ -26,15 +36,20 @@ self-driving-car/
 │   ├── css/
 │   │   └── style.css    # Styling for the simulation
 │   ├── js/
-│   │   ├── car.js       # Car class implementation
-│   │   ├── controls.js  # Keyboard controls for the car
-│   │   ├── main.js      # Main script to initialize and animate the simulation
-│   │   ├── network.js   # Neural network implementation
-│   │   ├── road.js      # Road class with lane management
-│   │   ├── sensor.js    # Implements the sensor class for detecting obstacles
-│   │   ├── utils.js     # Utility functions (e.g., linear interpolation)
-│   │   └── visualizer.js # Neural network visualization
-└── README.md            # Project documentation
+│   │   ├── car.js         # Car class implementation
+│   │   ├── controls.js    # Keyboard controls for the car
+│   │   ├── main.js        # Main script to initialize and animate the simulation
+│   │   ├── network.js     # Neural network implementation
+│   │   ├── road.js        # Road class with lane management
+│   │   ├── sensor.js      # Implements the sensor class for detecting obstacles
+│   │   ├── utils.js       # Utility functions (e.g., linear interpolation)
+│   │   ├── rl_agent.js    # Reinforcement learning agent (Q-learning)
+│   │   ├── utils_rl.js    # Reinforcement learning utility functions
+│   │   └── visualizer.js  # Neural network visualization
+├── images/
+│   ├── self-driving-car.png
+│   └── rl-car.png
+└── README.md              # Project documentation
 ```
 
 ## How to Run
