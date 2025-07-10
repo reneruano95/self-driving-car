@@ -1,5 +1,6 @@
 const STATE_SIZE = 9; // 5 sensor rays + speed + angle + normalized x position + normalized y position
 const ACTION_SIZE = 7; // [forward, left, right, reverse]
+const BATCH_SIZE = 32; // Default batch size for learning
 
 const carCanvas = document.getElementById("carCanvas");
 carCanvas.width = 200;
@@ -28,7 +29,7 @@ let rlAgent;
 let rlCar;
 
 function setupRLCar() {
-  rlAgent = new RLAgent(STATE_SIZE, ACTION_SIZE);
+  rlAgent = new RLAgent(STATE_SIZE, ACTION_SIZE, BATCH_SIZE);
   // Load Q-table from localStorage if available
   const savedQTable = localStorage.getItem("rlQTable");
   if (savedQTable) {
@@ -51,6 +52,7 @@ function getRLState(car) {
   const angle = car.angle / Math.PI; // Normalize angle to [-1, 1]
   const xNorm = (car.x - road.left) / (road.right - road.left); // Normalize x to [0, 1] within road
   const yNorm = car.y / 1000; // Normalize y (assuming 1000 is a reasonable road length scale)
+   
   return [...sensorReadings, car.speed, angle, xNorm, yNorm];
 }
 
@@ -91,16 +93,26 @@ function stepRLCar() {
     episodeStep = 0;
     resetRLCar();
   } else {
+    // Reward for moving forward
     if (rlCar.speed > 0.1) {
       reward += 2;
     } else {
       reward -= 0.5; // Penalize for being too slow
     }
-    // Bonus for staying near lane center
-    const laneCenter = road.getLaneCenter(0);
-    const laneWidth = road.right - road.left;
-    const distFromCenter = Math.abs(rlCar.x - laneCenter) / laneWidth;
-    reward += 0.5 * (1 - distFromCenter); // Max bonus at center, less as it deviates
+
+    // Penalty for being blocked by an obstacle ahead, and bonus for attempting to change lanes
+    const centerIdx = Math.floor(rlCar.sensor.readings.length / 2);
+    const frontSensor = rlCar.sensor && rlCar.sensor.readings[centerIdx]; // Assuming center ray
+    if (frontSensor && frontSensor.offset < 0.2) {
+      // Very close obstacle ahead
+      reward -= 2; // Penalize for being blocked
+      if (rlCar.controls.left || rlCar.controls.right) {
+        reward += 1; // Encourage lane change when blocked
+      }
+    }
+
+    // Bonus for staying near the closest lane center
+    reward += laneCenterBonus(rlCar, road);
   }
 
   episodeReward += reward;
