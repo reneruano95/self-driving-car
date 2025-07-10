@@ -1,7 +1,7 @@
 const STATE_SIZE = 9; // 5 sensor rays + speed + angle + normalized x position + normalized y position
 const ACTION_SIZE = 7; // [forward, forward+left, forward+right, reverse, left, right, no-op]
 const BATCH_SIZE = 32; // Default batch size for learning
-const SENSOR_OFFSET = 0.5; // Offset for sensor rays to avoid collision with the car's own polygon
+const SENSOR_OFFSET = 0.5; // Offset for sensor rays to avoid collision  with other cars
 const STEPS_COUNT = 100; // Steps after which to save the Q-table
 
 const carCanvas = document.getElementById("carCanvas");
