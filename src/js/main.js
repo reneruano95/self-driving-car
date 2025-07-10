@@ -1,3 +1,6 @@
+const STATE_SIZE = 9; // 5 sensor rays + speed + angle + normalized x position + normalized y position
+const ACTION_SIZE = 7; // [forward, left, right, reverse]
+
 const carCanvas = document.getElementById("carCanvas");
 carCanvas.width = 200;
 
@@ -25,9 +28,7 @@ let rlAgent;
 let rlCar;
 
 function setupRLCar() {
-  const stateSize = 6; // 5 sensor rays + 1 speed (adjust if needed)
-  const actionSize = 4; // [forward, left, right, reverse]
-  rlAgent = new RLAgent(stateSize, actionSize);
+  rlAgent = new RLAgent(STATE_SIZE, ACTION_SIZE);
   // Load Q-table from localStorage if available
   const savedQTable = localStorage.getItem("rlQTable");
   if (savedQTable) {
@@ -46,7 +47,11 @@ function getRLState(car) {
   const sensorReadings = car.sensor
     ? car.sensor.readings.map((s) => (s === null ? 0 : 1 - s.offset))
     : Array(5).fill(0);
-  return [...sensorReadings, car.speed];
+  // Add car's angle (normalized), x position (normalized), and y position (normalized)
+  const angle = car.angle / Math.PI; // Normalize angle to [-1, 1]
+  const xNorm = (car.x - road.left) / (road.right - road.left); // Normalize x to [0, 1] within road
+  const yNorm = car.y / 1000; // Normalize y (assuming 1000 is a reasonable road length scale)
+  return [...sensorReadings, car.speed, angle, xNorm, yNorm];
 }
 
 let rlStepCount = 0;
@@ -60,10 +65,10 @@ let lastEpisodeSteps = 0;
 function stepRLCar() {
   const state = getRLState(rlCar);
   const action = rlAgent.selectAction(state);
-  // Map action index to controls
-  rlCar.controls.forward = action === 0;
-  rlCar.controls.left = action === 1;
-  rlCar.controls.right = action === 2;
+  // Improved action mapping: allow combinations
+  rlCar.controls.forward = action === 0 || action === 1 || action === 2;
+  rlCar.controls.left = action === 1 || action === 4;
+  rlCar.controls.right = action === 2 || action === 5;
   rlCar.controls.reverse = action === 3;
 
   // --- RL reward calculation and experience storage ---
@@ -111,8 +116,10 @@ function stepRLCar() {
 
 // Overlay stats on the canvas
 function drawStats(ctx) {
-  const rectWidth = 230;
-  const rectHeight = 90;
+  const rectWidth = 250; // Width of the stats rectangle
+  const rectHeight = 90; // Height of the stats rectangle
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // Clear previous stats
+
   const canvasWidth = ctx.canvas.width;
   const canvasHeight = ctx.canvas.height;
   const x = (canvasWidth - rectWidth) / 2;
@@ -140,9 +147,14 @@ function resetTraffic() {
   const lanes = road.laneCount;
   const trafficSpacing = 180;
   const trafficStartY = -100;
+  // Place traffic cars away from the RL car's starting position
   for (let i = 0; i < 50; i++) {
     const lane = i % lanes;
-    const y = trafficStartY - i * trafficSpacing;
+    let y = trafficStartY - i * trafficSpacing;
+    // Ensure no traffic car is too close to the RL car's starting y (100)
+    if (Math.abs(y - 100) < 120) {
+      y -= 200; // Move it further away if too close
+    }
     traffic.push(new Car(road.getLaneCenter(lane), y, 30, 50, "DUMMY", 2));
   }
   // Immediately update all traffic cars to recalculate polygons

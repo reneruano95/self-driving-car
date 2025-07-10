@@ -18,8 +18,9 @@ class RLAgent {
   /**
    * @param {number} stateSize - Number of dimensions in the state space.
    * @param {number} actionSize - Number of possible discrete actions.
+   * @param {number} batchSize - Number of experiences to sample per learning step (default: 32)
    */
-  constructor(stateSize, actionSize) {
+  constructor(stateSize, actionSize, batchSize = 32) {
     this.stateSize = stateSize;
     this.actionSize = actionSize;
     this.memory = [];
@@ -28,6 +29,7 @@ class RLAgent {
     this.epsilonMin = 0.01;
     this.epsilonDecay = 0.995;
     this.learningRate = 0.001;
+    this.batchSize = batchSize; // Default batch size for learning
     // For simplicity, Q-table is used here; replace with NN for DQN
     this.qTable = {};
   }
@@ -74,28 +76,33 @@ class RLAgent {
   }
 
   /**
-   * Performs a Q-learning update using a random experience from memory.
+   * Performs a Q-learning update using a batch of random experiences from memory.
+   * @param {number} batchSize - Number of experiences to sample per learning step (default: 16)
    */
-  learn() {
+  learn(batchSize = this.batchSize) {
     if (this.memory.length === 0) return;
-    const { state, action, reward, nextState, done } =
-      this.memory[Math.floor(Math.random() * this.memory.length)];
-
-    const key = this._stateKey(state);
-    const nextKey = this._stateKey(nextState);
-
-    if (!this.qTable[key]) {
-      this.qTable[key] = Array(this.actionSize).fill(0);
+    // Sample a batch of experiences
+    const batch = [];
+    for (let i = 0; i < batchSize; i++) {
+      batch.push(this.memory[Math.floor(Math.random() * this.memory.length)]);
     }
-    if (!this.qTable[nextKey]) {
-      this.qTable[nextKey] = Array(this.actionSize).fill(0);
+    for (const { state, action, reward, nextState, done } of batch) {
+      const key = this._stateKey(state);
+      const nextKey = this._stateKey(nextState);
+
+      if (!this.qTable[key]) {
+        this.qTable[key] = Array(this.actionSize).fill(0);
+      }
+      if (!this.qTable[nextKey]) {
+        this.qTable[nextKey] = Array(this.actionSize).fill(0);
+      }
+
+      const target =
+        reward + (done ? 0 : this.gamma * Math.max(...this.qTable[nextKey]));
+
+      this.qTable[key][action] +=
+        this.learningRate * (target - this.qTable[key][action]);
     }
-
-    const target =
-      reward + (done ? 0 : this.gamma * Math.max(...this.qTable[nextKey]));
-
-    this.qTable[key][action] +=
-      this.learningRate * (target - this.qTable[key][action]);
 
     if (this.epsilon > this.epsilonMin) {
       this.epsilon *= this.epsilonDecay;
