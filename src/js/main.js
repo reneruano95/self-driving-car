@@ -72,10 +72,10 @@ function stepRLCar() {
   rlCar.controls.reverse = action === 3;
 
   // --- RL reward calculation and experience storage ---
-  // Reward: +1 for moving forward, -10 for crash, small penalty for not moving
-  let reward = 0;
+  // Reward: +2 for moving forward, -15 for crash, -0.05 for each step, -0.5 for being too slow, +0.5 for staying in lane center
+  let reward = -0.05; // Small penalty for each step (encourage faster completion)
   if (rlCar.damaged) {
-    reward = -10;
+    reward = -15;
     console.warn(
       `Episode ${episode} ended. Reward: ${episodeReward}, Steps: ${episodeStep}`
     );
@@ -90,10 +90,17 @@ function stepRLCar() {
     episodeReward = 0;
     episodeStep = 0;
     resetRLCar();
-  } else if (rlCar.speed > 0.1) {
-    reward = 1;
   } else {
-    reward = -0.01;
+    if (rlCar.speed > 0.1) {
+      reward += 2;
+    } else {
+      reward -= 0.5; // Penalize for being too slow
+    }
+    // Bonus for staying near lane center
+    const laneCenter = road.getLaneCenter(0);
+    const laneWidth = road.right - road.left;
+    const distFromCenter = Math.abs(rlCar.x - laneCenter) / laneWidth;
+    reward += 0.5 * (1 - distFromCenter); // Max bonus at center, less as it deviates
   }
 
   episodeReward += reward;

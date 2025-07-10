@@ -26,9 +26,9 @@ class RLAgent {
     this.memory = [];
     this.gamma = 0.95; // Discount factor
     this.epsilon = 1.0; // Exploration rate
-    this.epsilonMin = 0.01;
-    this.epsilonDecay = 0.995;
-    this.learningRate = 0.001;
+    this.epsilonMin = 0.05; // Minimum exploration rate
+    this.epsilonDecay = 0.999; // Decay rate for exploration
+    this.learningRate = 0.005; // Learning rate for Q-value updates
     this.batchSize = batchSize; // Default batch size for learning
     // For simplicity, Q-table is used here; replace with NN for DQN
     this.qTable = {};
@@ -44,7 +44,8 @@ class RLAgent {
    * For high-dimensional or highly variable states, consider coarser discretization.
    */
   _stateKey(state) {
-    return state.map((x) => x.toFixed(2)).join(",");
+    // Coarse discretization: round to nearest integer for each value
+    return state.map((x) => Math.round(x).toString()).join(",");
   }
 
   /**
