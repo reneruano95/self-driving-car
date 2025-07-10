@@ -6,6 +6,7 @@ const STEPS_COUNT = 50; // Steps after which to save the Q-table
 const Y_NORMALIZATION_SCALE = 2000; // Scale for normalizing Y position
 const MIN_SPEED_THRESHOLD = 0.1; // Minimum speed to avoid penalty
 const TRAFFIC_COUNT = 50; // Number of traffic cars
+const MAX_EPISODE_STEPS = 2000; // Maximum steps per episode
 
 const carCanvas = document.getElementById("carCanvas");
 carCanvas.width = 200;
@@ -58,7 +59,10 @@ function getRLState(car) {
   const xNorm = (car.x - road.left) / (road.right - road.left); // Normalize x to [0, 1] within road
   const yNorm = car.y / Y_NORMALIZATION_SCALE; // Normalize y with configurable scale
 
-  const rawState = [...sensorReadings, car.speed, angle, xNorm, yNorm];
+  // Normalize speed to a more reasonable range (0-1 for typical speeds)
+  const speedNorm = Math.min(car.speed / car.maxSpeed, 1); // Assuming max useful speed is car.maxSpeed
+
+  const rawState = [...sensorReadings, speedNorm, angle, xNorm, yNorm];
 
   // Validate and clamp state values to expected ranges
   return validateState(rawState);
@@ -83,8 +87,8 @@ function validateState(state) {
       // Sensor readings: should be between 0 and 1
       return Math.max(0, Math.min(1, value));
     } else if (index === 5) {
-      // Speed: clamp to reasonable range (0 to 10)
-      return Math.max(0, Math.min(10, value));
+      // Speed: clamp to reasonable range (0 to 1) - now normalized
+      return Math.max(0, Math.min(1, value));
     } else if (index === 6) {
       // Angle: should be between -1 and 1 (normalized by PI)
       return Math.max(-1, Math.min(1, value));
@@ -199,6 +203,20 @@ function stepRLCar() {
   // --- RL reward calculation and experience storage ---
   // Reward: +2 for moving forward, -15 for crash, -0.05 for each step, -0.5 for being too slow, +0.5 for staying in lane center
   let reward = -0.05; // Small penalty for each step (encourage faster completion)
+
+  // Check for episode termination conditions
+  if (episodeStep >= MAX_EPISODE_STEPS) {
+    reward = -5; // Penalty for taking too long
+    console.warn(`Episode ${episode} terminated: Max steps (${MAX_EPISODE_STEPS}) reached`);
+    lastEpisodeReward = episodeReward;
+    lastEpisodeSteps = episodeStep;
+    episode++;
+    episodeReward = 0;
+    episodeStep = 0;
+    resetRLCar();
+    return; // Exit early
+  }
+
   if (rlCar.damaged) {
     reward = -15;
     console.warn(
@@ -237,6 +255,15 @@ function stepRLCar() {
 
     // Bonus for staying near the closest lane center
     reward += laneCenterBonus(rlCar, road);
+
+    // Distance-based reward: encourage forward progress
+    const distanceReward = Math.max(0, -rlCar.y / 1000); // Reward for negative Y (forward movement)
+    reward += distanceReward * 0.1; // Small bonus for distance traveled
+
+    // Add success rewards for reaching certain distances
+    if (rlCar.y < -5000) { // Traveled far
+      reward += 50; // Big success bonus
+    }
   }
 
   episodeReward += reward;
@@ -265,8 +292,8 @@ function stepRLCar() {
 
 // Overlay stats on the canvas
 function drawStats(ctx) {
-  const rectWidth = 250; // Width of the stats rectangle
-  const rectHeight = 110; // Height of the stats rectangle
+  const rectWidth = 280; // Increased width for more stats
+  const rectHeight = 130; // Increased height for more stats
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // Clear previous stats
 
   const canvasWidth = ctx.canvas.width;
@@ -279,17 +306,19 @@ function drawStats(ctx) {
   ctx.fillStyle = "#222";
   ctx.fillRect(x, y, rectWidth, rectHeight);
   ctx.fillStyle = "#fff";
-  ctx.font = "18px monospace";
-  // Show current action and epsilon on screen
-  ctx.fillText(`Action: ${currentAction}, ε: ${rlAgent.epsilon.toFixed(3)}`, x + 10, y + 100);
+  ctx.font = "16px monospace"; // Slightly smaller font to fit more info
+
+  // Action names for better readability
+  const actionNames = ['FWD', 'FWD+L', 'FWD+R', 'REV', 'LEFT', 'RIGHT', 'NO-OP'];
+  const actionName = actionNames[currentAction] || 'UNKNOWN';
+
   ctx.fillText(`Episode: ${episode}`, x + 10, y + 20);
   ctx.fillText(`Reward: ${episodeReward.toFixed(2)}`, x + 10, y + 40);
-  ctx.fillText(`Steps: ${episodeStep}`, x + 10, y + 60);
-  ctx.fillText(
-    `Last: R=${lastEpisodeReward.toFixed(2)}, S=${lastEpisodeSteps}`,
-    x + 10,
-    y + 80
-  );
+  ctx.fillText(`Steps: ${episodeStep}/${MAX_EPISODE_STEPS}`, x + 10, y + 60);
+  ctx.fillText(`Action: ${actionName} (${currentAction})`, x + 10, y + 80);
+  ctx.fillText(`ε: ${rlAgent.epsilon.toFixed(3)}, Speed: ${rlCar.speed.toFixed(2)}`, x + 10, y + 100);
+  ctx.fillText(`Last: R=${lastEpisodeReward.toFixed(2)}, S=${lastEpisodeSteps}`, x + 10, y + 120);
+
   ctx.restore();
 }
 
@@ -334,6 +363,7 @@ function resetRLCar() {
 
 animate();
 
+
 function animate() {
   for (let i = 0; i < traffic.length; i++) {
     traffic[i].update(road.borders, []); // Update each traffic car
@@ -341,10 +371,8 @@ function animate() {
   stepRLCar();
   rlCar.update(road.borders, traffic);
 
-
   carCanvas.height = window.innerHeight;
   networkCanvas.height = window.innerHeight;
-
 
   carCanvasContext.save(); // Save the current state of the canvas
   carCanvasContext.translate(0, -rlCar.y + carCanvas.height * 0.7); // Translate the canvas to center the RL car vertically
