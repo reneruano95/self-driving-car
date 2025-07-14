@@ -20,10 +20,36 @@ button {
   font-size: 24px;
   margin: 5px 15px;
   cursor: pointer;
+  transition: background-color 0.3s ease;
 }
 
 button:hover {
   background: lightblue;
+}
+
+#toggleButton {
+  background: #9C27B0;
+  color: white;
+}
+
+#exportButton {
+  background: #4CAF50;
+  color: white;
+}
+
+#importButton {
+  background: #008CBA;
+  color: white;
+}
+
+#saveButton {
+  background: #ff9800;
+  color: white;
+}
+
+#discardButton {
+  background: #f44336;
+  color: white;
 }
 
 #carCanvas {

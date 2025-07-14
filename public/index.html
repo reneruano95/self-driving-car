@@ -9,10 +9,16 @@
   <body>
     <canvas id="carCanvas"></canvas>
     <div id="verticalButtons">
-      <button id="saveButton" onclick="save()">💾</button>
-      <button id="discardButton" onclick="discard()">🗑️</button>
+      <button id="toggleButton" onclick="toggleCarMode()" title="Toggle between RL and Neural Network mode">🔄</button>
+      <button id="saveButton" onclick="save()" title="Save current AI to localStorage">💾</button>
+      <button id="discardButton" onclick="discard()" title="Discard current AI from localStorage">🗑️</button>
+      <button id="exportButton" onclick="saveQTableToFile()" title="Export current AI to JSON file">📤</button>
+      <button id="importButton" onclick="document.getElementById('fileInput').click()" title="Import AI from JSON file">📥</button>
     </div>
+    <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="loadQTableFromFile(event)">
     <canvas id="networkCanvas"></canvas>
+    <script src="/src/js/utils_rl.js"></script>
+    <script src="/src/js/rl_agent.js"></script>
     <script src="/src/js/network.js"></script>
     <script src="/src/js/visualizer.js"></script>
     <script src="/src/js/sensor.js"></script>
