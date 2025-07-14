@@ -192,11 +192,7 @@ function stepRLCar() {
   const nextState = getRLState(rlCar);
   const done = rlCar.damaged;
 
-  // Log state statistics for debugging 
-  // if (rlStepCount % 100 === 0) {
-  //   logStateStats(state);
-  // }
-
+  // Store experience for learning
   rlAgent.storeExperience(state, action, reward, nextState, done);
   rlAgent.learn();
   rlStepCount++;
