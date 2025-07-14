@@ -1,30 +1,35 @@
 # Self-Driving Car Simulation
 
-![Self-Driving Car Simulation](images/self-driving-car.png)
+![Self-Driving Car Simulation](images/nn-car.png)
  
 ## Overview
 
 This project is a self-driving car simulation built using HTML, CSS, and JavaScript. It demonstrates basic concepts of physics, controls, neural networks, reinforcement learning, and rendering in a 2D space. The simulation includes AI-driven cars that learn to navigate a road with traffic.
 
+
 ## Features
 
-- **AI-Driven Cars**: Simulates multiple cars controlled by neural networks.
-- **Reinforcement Learning Agent**: Includes a car controlled by a Q-learning RL agent that learns to drive through trial and error, with its progress saved automatically.
+- **Dual AI Modes with Toggle**: Easily switch between Reinforcement Learning (RL) and Neural Network (NN) car modes using the new toggle button (🔄) in the UI. Both modes share unified controls and export/import options.
+- **AI-Driven Cars (NN Mode)**: Simulates multiple cars controlled by neural networks that evolve to improve driving performance.
+- **Reinforcement Learning Agent (RL Mode)**: Includes a car controlled by a Q-learning RL agent that learns to drive through trial and error, with its progress saved automatically.
+- **Unified Save/Load/Export/Import**: Save, discard, export, or import the current AI (RL Q-table or NN brain) using the same set of buttons, with automatic detection of the current mode.
 - **Traffic Simulation**: Includes dummy cars to simulate real-world traffic.
-- **Neural Network Visualization**: Visualizes the neural network's structure and activity.
+- **Neural Network Visualization**: Visualizes the neural network's structure and activity (NN mode).
 - **Car Movement**: Cars can accelerate, decelerate, and turn left or right.
 - **Road with Lanes**: A road with multiple lanes, lane markings, and borders.
 - **Physics Simulation**: Implements acceleration, friction, and speed limits.
 - **Canvas Rendering**: Renders the simulation on HTML canvas elements.
 
-## Reinforcement Learning Implementation
-![Self-Driving Car Simulation](images/rl-car.png)
 
-- The RL agent uses a Q-learning algorithm (tabular, pure JavaScript) to learn optimal driving actions based on sensor readings and speed.
-- The agent receives positive rewards for moving forward, negative rewards for crashes, and small penalties for inactivity.
-- The Q-table is automatically saved to the browser's localStorage every 50 steps and after each crash, so learning progress is preserved across reloads.
-- You can export the Q-table as a JSON file for backup or sharing.
-- The RL car is visualized in green, and its average reward is displayed on the simulation canvas.
+## Dual AI Modes: RL and Neural Network
+You can now toggle between two AI modes:
+
+- **RL Mode**: A single car controlled by a Q-learning agent. Progress is saved as a Q-table, which can be exported/imported or saved/discarded from localStorage. The RL car is visualized in green, and its stats are shown on the canvas.
+- **NN Mode**: Multiple cars controlled by neural networks. The best-performing car's brain can be saved, exported, or imported. The NN cars are visualized in blue, and their stats (best distance, speed, etc.) are shown on the canvas.
+
+Use the **toggle button (🔄)** in the UI to switch between modes at any time. All save/load/export/import actions apply to the currently active mode.
+
+![Self-Driving Car Simulation](images/rl-car.png)
 
 ## File Structure
 
@@ -61,13 +66,19 @@ self-driving-car/
 2. Open the `public/index.html` file in a web browser.
    - Note: If the project uses `fetch` or other features requiring a server, use a local server (e.g., `Live Server` in VS Code).
 
+
 ## Controls
 
-- **Arrow Up**: Move forward
+- **Toggle Mode (🔄)**: Switch between RL and NN car modes.
+- **💾 Save**: Save the current AI (Q-table or NN brain) to localStorage.
+- **🗑️ Discard**: Remove the current AI from localStorage.
+- **📤 Export**: Download the current AI as a JSON file.
+- **📥 Import**: Load an AI from a JSON file (auto-detects RL or NN format).
+- **Arrow Up**: Move forward (manual mode, if enabled)
 - **Arrow Down**: Move backward
 - **Arrow Left**: Turn left
 - **Arrow Right**: Turn right
-- Note: The default control type is "AI" for autonomous driving.
+- Note: The default control type is "AI" for autonomous driving, but you can switch modes and manage AI data at any time.
 
 ## Classes and Methods
 
