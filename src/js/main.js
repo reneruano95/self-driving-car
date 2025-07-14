@@ -7,6 +7,11 @@ const Y_NORMALIZATION_SCALE = 2000; // Scale for normalizing Y position
 const MIN_SPEED_THRESHOLD = 0.1; // Minimum speed to avoid penalty
 const TRAFFIC_COUNT = 50; // Number of traffic cars
 const MAX_EPISODE_STEPS = 2000; // Maximum steps per episode
+const N_CARS = 100; // Number of neural network cars
+
+// Car mode toggle
+let carMode = "RL"; // "RL" for Reinforcement Learning, "NN" for Neural Network
+let time = 0;
 
 const carCanvas = document.getElementById("carCanvas");
 carCanvas.width = 200;
@@ -34,19 +39,12 @@ for (let i = 0; i < TRAFFIC_COUNT; i++) {
 let rlAgent;
 let rlCar;
 
-function setupRLCar() {
-  rlAgent = new RLAgent(STATE_SIZE, ACTION_SIZE, BATCH_SIZE);
-  // Load Q-table from localStorage if available
-  const savedQTable = localStorage.getItem("rlQTable");
-  if (savedQTable) {
-    try {
-      rlAgent.qTable = JSON.parse(savedQTable);
-    } catch (e) {
-      rlAgent.qTable = {};
-    }
-  }
-  rlCar = new Car(road.getLaneCenter(0), 100, 30, 50, "PLAYER");
-}
+// Neural Network cars (for neural network mode)
+let cars = [];
+let bestCar;
+
+// Initialize simulation 
+initializeSimulation();
 
 setupRLCar();
 
@@ -205,87 +203,16 @@ function stepRLCar() {
   }
 }
 
-// Save Q-table to JSON file
-function saveQTableToFile() {
-  const qTableData = {
-    qTable: rlAgent.qTable,
-    episode: episode,
-    epsilon: rlAgent.epsilon,
-    timestamp: new Date().toISOString(),
-    stats: {
-      totalSteps: rlStepCount,
-      lastEpisodeReward: lastEpisodeReward,
-      lastEpisodeSteps: lastEpisodeSteps
-    }
-  };
-  
-  const dataStr = JSON.stringify(qTableData, null, 2);
-  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-  
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(dataBlob);
-  link.download = `rl-qtable-episode-${episode}-${Date.now()}.json`;
-  link.click();
-  
-  console.log('Q-table exported successfully!');
-}
-
-// Load Q-table from JSON file
-function loadQTableFromFile(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const qTableData = JSON.parse(e.target.result);
-      
-      // Validate the data structure
-      if (qTableData.qTable && typeof qTableData.qTable === 'object') {
-        rlAgent.qTable = qTableData.qTable;
-        
-        // Restore other parameters if available
-        if (qTableData.epsilon !== undefined) {
-          rlAgent.epsilon = qTableData.epsilon;
-        }
-        if (qTableData.episode !== undefined) {
-          episode = qTableData.episode;
-        }
-        if (qTableData.stats) {
-          if (qTableData.stats.totalSteps !== undefined) {
-            rlStepCount = qTableData.stats.totalSteps;
-          }
-          if (qTableData.stats.lastEpisodeReward !== undefined) {
-            lastEpisodeReward = qTableData.stats.lastEpisodeReward;
-          }
-          if (qTableData.stats.lastEpisodeSteps !== undefined) {
-            lastEpisodeSteps = qTableData.stats.lastEpisodeSteps;
-          }
-        }
-        
-        // Also save to localStorage
-        localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
-        
-        console.log('Q-table loaded successfully!', {
-          episode: episode,
-          epsilon: rlAgent.epsilon,
-          qTableSize: Object.keys(rlAgent.qTable).length
-        });
-        
-        alert('Q-table loaded successfully!');
-      } else {
-        throw new Error('Invalid Q-table file format');
-      }
-    } catch (error) {
-      console.error('Error loading Q-table:', error);
-      alert('Error loading Q-table file: ' + error.message);
-    }
-  };
-  reader.readAsText(file);
-}
-
 // Save function for the existing save button (saves to localStorage)
 function save() {
+  if (carMode === "RL") {
+    saveRL();
+  } else if (carMode === "NN") {
+    saveNN();
+  }
+}
+
+function saveRL() {
   try {
     localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
     console.log('Q-table saved to localStorage');
@@ -294,14 +221,40 @@ function save() {
   }
 }
 
+function saveNN() {
+  try {
+    localStorage.setItem("bestBrain", JSON.stringify(bestCar.brain));
+    console.log('Neural network saved to localStorage');
+  } catch (e) {
+    console.error("Failed to save neural network to localStorage:", e);
+  }
+}
+
 // Discard function for the existing discard button
 function discard() {
+  if (carMode === "RL") {
+    discardRL();
+  } else if (carMode === "NN") {
+    discardNN();
+  }
+}
+
+function discardRL() {
   try {
     localStorage.removeItem("rlQTable");
     rlAgent.qTable = {};
     console.log('Q-table discarded from localStorage');
   } catch (e) {
     console.error("Failed to discard Q-table:", e);
+  }
+}
+
+function discardNN() {
+  try {
+    localStorage.removeItem("bestBrain");
+    console.log('Neural network discarded from localStorage');
+  } catch (e) {
+    console.error("Failed to discard neural network:", e);
   }
 }
 
@@ -323,16 +276,28 @@ function drawStats(ctx) {
   ctx.fillStyle = "#fff";
   ctx.font = "16px monospace"; // Slightly smaller font to fit more info
 
-  // Action names for better readability
-  const actionNames = ['FWD', 'FWD+L', 'FWD+R', 'REV', 'LEFT', 'RIGHT', 'NO-OP'];
-  const actionName = actionNames[currentAction] || 'UNKNOWN';
+  ctx.fillText(`Mode: ${carMode}`, x + 10, y + 20);
 
-  ctx.fillText(`Episode: ${episode}`, x + 10, y + 20);
-  ctx.fillText(`Reward: ${episodeReward.toFixed(2)}`, x + 10, y + 40);
-  ctx.fillText(`Steps: ${episodeStep}/${MAX_EPISODE_STEPS}`, x + 10, y + 60);
-  ctx.fillText(`Action: ${actionName} (${currentAction})`, x + 10, y + 80);
-  ctx.fillText(`ε: ${rlAgent.epsilon.toFixed(3)}, Speed: ${rlCar.speed.toFixed(2)}`, x + 10, y + 100);
-  ctx.fillText(`Last: R=${lastEpisodeReward.toFixed(2)}, S=${lastEpisodeSteps}`, x + 10, y + 120);
+  if (carMode === "RL") {
+    // Action names for better readability
+    const actionNames = ['FWD', 'FWD+L', 'FWD+R', 'REV', 'LEFT', 'RIGHT', 'NO-OP'];
+    const actionName = actionNames[currentAction] || 'UNKNOWN';
+
+    ctx.fillText(`Episode: ${episode}`, x + 10, y + 40);
+    ctx.fillText(`Reward: ${episodeReward.toFixed(2)}`, x + 10, y + 60);
+    ctx.fillText(`Steps: ${episodeStep}/${MAX_EPISODE_STEPS}`, x + 10, y + 80);
+    ctx.fillText(`Action: ${actionName} (${currentAction})`, x + 10, y + 100);
+    ctx.fillText(`ε: ${rlAgent.epsilon.toFixed(3)}, Speed: ${rlCar.speed.toFixed(2)}`, x + 10, y + 120);
+  } else if (carMode === "NN") {
+    const aliveCars = cars.filter(c => !c.damaged).length;
+    const totalDistance = bestCar ? bestCar.y : 0;
+
+    ctx.fillText(`Cars: ${aliveCars}/${cars.length}`, x + 10, y + 40);
+    ctx.fillText(`Best Distance: ${Math.abs(totalDistance).toFixed(0)}`, x + 10, y + 60);
+    ctx.fillText(`Speed: ${bestCar ? bestCar.speed.toFixed(2) : 0}`, x + 10, y + 80);
+    ctx.fillText(`Time: ${Math.floor(time / 60)}s`, x + 10, y + 100);
+    ctx.fillText(`Best Car Position: ${bestCar ? bestCar.y.toFixed(0) : 0}`, x + 10, y + 120);
+  }
 
   ctx.restore();
 }
@@ -376,9 +341,67 @@ function resetRLCar() {
   rlCar.update(road.borders, traffic);
 }
 
+// Initialize simulation based on car mode
+function initializeSimulation() {
+  if (carMode === "RL") {
+    setupRLCar();
+  } else if (carMode === "NN") {
+    setupNeuralNetworkCars();
+  }
+  resetTraffic();
+}
+
+function setupRLCar() {
+  rlAgent = new RLAgent(STATE_SIZE, ACTION_SIZE, BATCH_SIZE);
+  // Load Q-table from localStorage if available
+  const savedQTable = localStorage.getItem("rlQTable");
+  if (savedQTable) {
+    try {
+      rlAgent.qTable = JSON.parse(savedQTable);
+    } catch (e) {
+      rlAgent.qTable = {};
+    }
+  }
+  rlCar = new Car(road.getLaneCenter(0), 100, 30, 50, "PLAYER");
+}
+
+
+function setupNeuralNetworkCars() {
+  cars = [];
+  for (let i = 0; i <= N_CARS; i++) {
+    cars.push(new Car(road.getLaneCenter(1), 100, 30, 50, "AI"));
+  }
+  bestCar = cars[0];
+
+  // Load best brain from localStorage if available
+  if (localStorage.getItem("bestBrain")) {
+    for (let i = 0; i < cars.length; i++) {
+      cars[i].brain = JSON.parse(localStorage.getItem("bestBrain"));
+      if (i != 0) {
+        NeuralNetwork.mutate(cars[i].brain, 0.1);
+      }
+    }
+  }
+}
+
+// Toggle between RL and NN modes
+function toggleCarMode() {
+  carMode = carMode === "RL" ? "NN" : "RL";
+  initializeSimulation();
+  console.log(`Switched to ${carMode} mode`);
+}
+
 animate();
 
-function animate() {
+function animate(time) {
+  if (carMode === "RL") {
+    animateRL();
+  } else if (carMode === "NN") {
+    animateNN(time);
+  }
+}
+
+function animateRL() {
   for (let i = 0; i < traffic.length; i++) {
     traffic[i].update(road.borders, []); // Update each traffic car
   }
@@ -401,4 +424,198 @@ function animate() {
 
   carCanvasContext.restore();
   requestAnimationFrame(animate);
+}
+
+function animateNN(time) {
+
+  for (let i = 0; i < traffic.length; i++) {
+    traffic[i].update(road.borders, []);
+  }
+
+  for (let i = 0; i < cars.length; i++) {
+    cars[i].update(road.borders, traffic);
+  }
+
+  bestCar = cars.find(c => c.y == Math.min(...cars.map(c => c.y)));
+
+  carCanvas.height = window.innerHeight;
+  networkCanvas.height = window.innerHeight;
+
+  carCanvasContext.save();
+  carCanvasContext.translate(0, -bestCar.y + carCanvas.height * 0.7);
+
+  road.draw(carCanvasContext);
+  for (let i = 0; i < traffic.length; i++) {
+    traffic[i].draw(carCanvasContext, "red");
+  }
+  carCanvasContext.globalAlpha = 0.2;
+  for (let i = 0; i < cars.length; i++) {
+    cars[i].draw(carCanvasContext, "blue");
+  }
+  carCanvasContext.globalAlpha = 1;
+  bestCar.draw(carCanvasContext, "blue", true);
+
+  carCanvasContext.restore();
+
+  networkCanvasContext.lineDashOffset = -time / 50;
+  Visualizer.drawNetwork(networkCanvasContext, bestCar.brain);
+  requestAnimationFrame(animate);
+}
+
+// Save Q-table to JSON file
+function saveQTableToFile() {
+  if (carMode === "RL") {
+    saveRLToFile();
+  } else if (carMode === "NN") {
+    saveNNToFile();
+  }
+}
+
+function saveRLToFile() {
+  const qTableData = {
+    mode: "RL",
+    qTable: rlAgent.qTable,
+    episode: episode,
+    epsilon: rlAgent.epsilon,
+    timestamp: new Date().toISOString(),
+    stats: {
+      totalSteps: rlStepCount,
+      lastEpisodeReward: lastEpisodeReward,
+      lastEpisodeSteps: lastEpisodeSteps
+    }
+  };
+
+  const dataStr = JSON.stringify(qTableData, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `rl-qtable-episode-${episode}-${Date.now()}.json`;
+  link.click();
+
+  console.log('Q-table exported successfully!');
+}
+
+function saveNNToFile() {
+  const neuralNetworkData = {
+    mode: "NN",
+    brain: bestCar.brain,
+    timestamp: new Date().toISOString(),
+    stats: {
+      totalCars: cars.length,
+      bestDistance: Math.abs(bestCar.y),
+      time: time
+    }
+  };
+
+  const dataStr = JSON.stringify(neuralNetworkData, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `neural-network-${Date.now()}.json`;
+  link.click();
+
+  console.log('Neural network exported successfully!');
+}
+
+// Load Q-table from JSON file
+function loadQTableFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const data = JSON.parse(e.target.result);
+
+      // Check the mode and load accordingly
+      if (data.mode === "RL" && data.qTable) {
+        loadRLFromFile(data);
+      } else if (data.mode === "NN" && data.brain) {
+        loadNNFromFile(data);
+      } else if (data.qTable && !data.mode) {
+        // Legacy RL format
+        loadRLFromFile(data);
+      } else {
+        console.error('Invalid file format or unsupported mode');
+        alert('Invalid file format. Please select a valid RL or Neural Network JSON file.');
+      }
+    } catch (error) {
+      console.error('Error loading file:', error);
+      alert('Error loading file. Please make sure it\'s a valid JSON file.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+// New helper functions to load RL and Neural Network data from files
+function loadRLFromFile(qTableData) {
+  // Validate the data structure
+  if (qTableData.qTable && typeof qTableData.qTable === 'object') {
+    // Switch to RL mode if not already
+    if (carMode !== "RL") {
+      carMode = "RL";
+      initializeSimulation();
+    }
+
+    rlAgent.qTable = qTableData.qTable;
+
+    // Restore other parameters if available
+    if (qTableData.epsilon !== undefined) {
+      rlAgent.epsilon = qTableData.epsilon;
+    }
+    if (qTableData.episode !== undefined) {
+      episode = qTableData.episode;
+    }
+    if (qTableData.stats) {
+      if (qTableData.stats.totalSteps !== undefined) {
+        rlStepCount = qTableData.stats.totalSteps;
+      }
+      if (qTableData.stats.lastEpisodeReward !== undefined) {
+        lastEpisodeReward = qTableData.stats.lastEpisodeReward;
+      }
+      if (qTableData.stats.lastEpisodeSteps !== undefined) {
+        lastEpisodeSteps = qTableData.stats.lastEpisodeSteps;
+      }
+    }
+
+    // Also save to localStorage
+    localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+
+    console.log('Q-table loaded successfully!');
+    alert('Q-table loaded successfully!');
+  } else {
+    console.error('Invalid Q-table data format');
+    alert('Invalid Q-table data format. Please select a valid RL JSON file.');
+  }
+}
+
+function loadNNFromFile(neuralNetworkData) {
+  // Validate the data structure
+  if (neuralNetworkData.brain && typeof neuralNetworkData.brain === 'object') {
+    // Switch to NN mode if not already
+    if (carMode !== "NN") {
+      carMode = "NN";
+      initializeSimulation();
+    }
+
+    // Apply the loaded brain to all cars
+    for (let i = 0; i < cars.length; i++) {
+      cars[i].brain = JSON.parse(JSON.stringify(neuralNetworkData.brain));
+      if (i != 0) {
+        NeuralNetwork.mutate(cars[i].brain, 0.1);
+      }
+    }
+    bestCar = cars[0];
+
+    // Also save to localStorage
+    localStorage.setItem("bestBrain", JSON.stringify(neuralNetworkData.brain));
+
+    console.log('Neural network loaded successfully!');
+    alert('Neural network loaded successfully!');
+  } else {
+    console.error('Invalid neural network data format');
+    alert('Invalid neural network data format. Please select a valid Neural Network JSON file.');
+  }
 }

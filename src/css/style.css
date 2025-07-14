@@ -27,6 +27,11 @@ button:hover {
   background: lightblue;
 }
 
+#toggleButton {
+  background: #9C27B0;
+  color: white;
+}
+
 #exportButton {
   background: #4CAF50;
   color: white;
