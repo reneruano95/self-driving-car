@@ -205,6 +205,106 @@ function stepRLCar() {
   }
 }
 
+// Save Q-table to JSON file
+function saveQTableToFile() {
+  const qTableData = {
+    qTable: rlAgent.qTable,
+    episode: episode,
+    epsilon: rlAgent.epsilon,
+    timestamp: new Date().toISOString(),
+    stats: {
+      totalSteps: rlStepCount,
+      lastEpisodeReward: lastEpisodeReward,
+      lastEpisodeSteps: lastEpisodeSteps
+    }
+  };
+  
+  const dataStr = JSON.stringify(qTableData, null, 2);
+  const dataBlob = new Blob([dataStr], { type: 'application/json' });
+  
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(dataBlob);
+  link.download = `rl-qtable-episode-${episode}-${Date.now()}.json`;
+  link.click();
+  
+  console.log('Q-table exported successfully!');
+}
+
+// Load Q-table from JSON file
+function loadQTableFromFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const qTableData = JSON.parse(e.target.result);
+      
+      // Validate the data structure
+      if (qTableData.qTable && typeof qTableData.qTable === 'object') {
+        rlAgent.qTable = qTableData.qTable;
+        
+        // Restore other parameters if available
+        if (qTableData.epsilon !== undefined) {
+          rlAgent.epsilon = qTableData.epsilon;
+        }
+        if (qTableData.episode !== undefined) {
+          episode = qTableData.episode;
+        }
+        if (qTableData.stats) {
+          if (qTableData.stats.totalSteps !== undefined) {
+            rlStepCount = qTableData.stats.totalSteps;
+          }
+          if (qTableData.stats.lastEpisodeReward !== undefined) {
+            lastEpisodeReward = qTableData.stats.lastEpisodeReward;
+          }
+          if (qTableData.stats.lastEpisodeSteps !== undefined) {
+            lastEpisodeSteps = qTableData.stats.lastEpisodeSteps;
+          }
+        }
+        
+        // Also save to localStorage
+        localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+        
+        console.log('Q-table loaded successfully!', {
+          episode: episode,
+          epsilon: rlAgent.epsilon,
+          qTableSize: Object.keys(rlAgent.qTable).length
+        });
+        
+        alert('Q-table loaded successfully!');
+      } else {
+        throw new Error('Invalid Q-table file format');
+      }
+    } catch (error) {
+      console.error('Error loading Q-table:', error);
+      alert('Error loading Q-table file: ' + error.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Save function for the existing save button (saves to localStorage)
+function save() {
+  try {
+    localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+    console.log('Q-table saved to localStorage');
+  } catch (e) {
+    console.error("Failed to save Q-table to localStorage:", e);
+  }
+}
+
+// Discard function for the existing discard button
+function discard() {
+  try {
+    localStorage.removeItem("rlQTable");
+    rlAgent.qTable = {};
+    console.log('Q-table discarded from localStorage');
+  } catch (e) {
+    console.error("Failed to discard Q-table:", e);
+  }
+}
+
 // Overlay stats on the canvas
 function drawStats(ctx) {
   const rectWidth = 280; // Increased width for more stats
