@@ -44,14 +44,14 @@ class HelpSystem {
             <strong>📤</strong> Export AI to File<br>
             <strong>📥</strong> Import AI from File<br>
             <strong>⚡</strong> Toggle Enhanced NN<br>
-            <strong>⚙️</strong> Configuration Panel
+            <strong>⚙️</strong> Configuration Panel (Not implemented yet)<br>
           </div>
         </div>
         
         <div>
           <h3 style="color: #FF9800; margin-bottom: 10px;">⌨️ Keyboard Shortcuts</h3>
           <div style="line-height: 1.6;">
-            <strong>C</strong> - Configuration Panel<br>
+            <strong>C</strong> - Config. Panel (Not implemented yet)<br>
             <strong>E</strong> - Enhanced Neural Network<br>
             <strong>P</strong> - Performance Overlay<br>
             <strong>H</strong> - This Help Panel<br>

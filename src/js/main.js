@@ -521,10 +521,10 @@ let lastAnimationTime = 0;
 // Add keyboard shortcuts
 document.addEventListener('keydown', (e) => {
   switch (e.key) {
-    case 'c':
-    case 'C':
-      toggleConfig();
-      break;
+    // case 'c':
+    // case 'C':
+    //   toggleConfig();
+    //   break;
     case 'e':
     case 'E':
       if (carMode === "NN") {
