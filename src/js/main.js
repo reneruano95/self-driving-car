@@ -9,14 +9,58 @@ const TRAFFIC_COUNT = 50; // Number of traffic cars
 const MAX_EPISODE_STEPS = 2000; // Maximum steps per episode
 const N_CARS = 100; // Number of neural network cars
 
+// Toggle enhanced neural network
+function toggleEnhancedNN() {
+  // Only allow toggling in NN mode
+  if (carMode !== "NN") {
+    console.log("Enhanced Neural Network is only available in NN mode");
+    return;
+  }
+
+  useEnhancedNN = !useEnhancedNN;
+  if (carMode === "NN") {
+    initializeSimulation();
+  }
+  console.log(`Enhanced Neural Network: ${useEnhancedNN ? 'ON' : 'OFF'}`);
+}
+
+// Toggle DQN agent (for RL mode)
+function toggleDQN() {
+  // Only allow toggling in RL mode
+  if (carMode !== "RL") {
+    console.log("DQN toggle is only available in RL mode");
+    return;
+  }
+
+  useDQN = !useDQN;
+  if (carMode === "RL") {
+    initializeSimulation();
+  }
+  console.log(`DQN Agent: ${useDQN ? 'ON' : 'OFF'} (was using ${useDQN ? 'Q-table' : 'DQN'})`);
+}
+
+
 // Car mode toggle
 let carMode = "RL"; // "RL" for Reinforcement Learning, "NN" for Neural Network
 let time = 0;
 
+// RL Agent settings
+let useDQN = false; // Toggle between Q-table and DQN agent
+let dqnConfig = {
+  gamma: 0.95,
+  epsilon: 1.0,
+  epsilonMin: 0.01,
+  epsilonDecay: 0.995,
+  learningRate: 0.001,
+  batchSize: 32,
+  memorySize: 10000,
+  targetUpdateFreq: 100
+};
+
 // Initialize performance monitor and configuration
 const performanceMonitor = new PerformanceMonitor();
 let useEnhancedNN = false; // Toggle for enhanced neural network
-let geneticAlgorithm = null;
+let geneticAlgorithm = null; // Genetic algorithm instance for NN mode
 
 const carCanvas = document.getElementById("carCanvas");
 carCanvas.width = 200;
@@ -145,9 +189,14 @@ function stepRLCar() {
       `Episode ${episode} ended. Reward: ${episodeReward}, Steps: ${episodeStep}`
     );
     try {
-      localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+      if (useDQN) {
+        const dqnState = rlAgent.save();
+        localStorage.setItem("dqnAgent", JSON.stringify(dqnState));
+      } else {
+        localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+      }
     } catch (e) {
-      console.error("Failed to save Q-table:", e);
+      console.error("Failed to save RL agent:", e);
     }
     lastEpisodeReward = episodeReward;
     lastEpisodeSteps = episodeStep;
@@ -201,9 +250,14 @@ function stepRLCar() {
   rlStepCount++;
   if (rlStepCount % STEPS_COUNT === 0) {
     try {
-      localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+      if (useDQN) {
+        const dqnState = rlAgent.save();
+        localStorage.setItem("dqnAgent", JSON.stringify(dqnState));
+      } else {
+        localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+      }
     } catch (e) {
-      console.error("Failed to save Q-table:", e);
+      console.error("Failed to save RL agent:", e);
     }
   }
 }
@@ -219,10 +273,16 @@ function save() {
 
 function saveRL() {
   try {
-    localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
-    console.log('Q-table saved to localStorage');
+    if (useDQN) {
+      const dqnState = rlAgent.save();
+      localStorage.setItem("dqnAgent", JSON.stringify(dqnState));
+      console.log('DQN agent saved to localStorage');
+    } else {
+      localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+      console.log('Q-table saved to localStorage');
+    }
   } catch (e) {
-    console.error("Failed to save Q-table to localStorage:", e);
+    console.error("Failed to save RL agent to localStorage:", e);
   }
 }
 
@@ -259,11 +319,17 @@ function discard() {
 
 function discardRL() {
   try {
-    localStorage.removeItem("rlQTable");
-    rlAgent.qTable = {};
-    console.log('Q-table discarded from localStorage');
+    if (useDQN) {
+      localStorage.removeItem("dqnAgent");
+      rlAgent = new DQNAgent(STATE_SIZE, ACTION_SIZE, dqnConfig);
+      console.log('DQN agent discarded from localStorage');
+    } else {
+      localStorage.removeItem("rlQTable");
+      rlAgent.qTable = {};
+      console.log('Q-table discarded from localStorage');
+    }
   } catch (e) {
-    console.error("Failed to discard Q-table:", e);
+    console.error("Failed to discard RL agent:", e);
   }
 }
 
@@ -299,7 +365,8 @@ function drawStats(ctx) {
   ctx.font = "14px monospace";
 
   ctx.fillText(`Mode: ${carMode} ${carMode === "NN" &&
-    useEnhancedNN ? '(Enhanced)' : ''}`, x + 10, y + 20);
+    useEnhancedNN ? '(Enhanced)' : ''}${carMode === "RL" &&
+      useDQN ? '(DQN)' : carMode === "RL" ? '(Q-table)' : ''}`, x + 10, y + 20);
 
   if (carMode === "RL") {
     // Action names for better readability
@@ -378,14 +445,31 @@ function initializeSimulation() {
 }
 
 function setupRLCar() {
-  rlAgent = new RLAgent(STATE_SIZE, ACTION_SIZE, BATCH_SIZE);
-  // Load Q-table from localStorage if available
-  const savedQTable = localStorage.getItem("rlQTable");
-  if (savedQTable) {
-    try {
-      rlAgent.qTable = JSON.parse(savedQTable);
-    } catch (e) {
-      rlAgent.qTable = {};
+  if (useDQN) {
+    rlAgent = new DQNAgent(STATE_SIZE, ACTION_SIZE, dqnConfig);
+    // Load DQN state from localStorage if available
+    const savedDQN = localStorage.getItem("dqnAgent");
+    if (savedDQN) {
+      try {
+        const savedState = JSON.parse(savedDQN);
+        rlAgent.load(savedState);
+        console.log('DQN agent loaded from localStorage');
+      } catch (e) {
+        console.warn('Failed to load DQN agent, starting fresh:', e);
+      }
+    }
+  } else {
+    rlAgent = new RLAgent(STATE_SIZE, ACTION_SIZE, BATCH_SIZE);
+    // Load Q-table from localStorage if available
+    const savedQTable = localStorage.getItem("rlQTable");
+    if (savedQTable) {
+      try {
+        rlAgent.qTable = JSON.parse(savedQTable);
+        console.log('Q-table loaded from localStorage');
+      } catch (e) {
+        rlAgent.qTable = {};
+        console.warn('Failed to load Q-table, starting fresh:', e);
+      }
     }
   }
   rlCar = new Car(road.getLaneCenter(0), 100, 30, 50, "PLAYER");
@@ -531,6 +615,12 @@ document.addEventListener('keydown', (e) => {
         toggleEnhancedNN();
       }
       break;
+    case 'd':
+    case 'D':
+      if (carMode === "RL") {
+        toggleDQN();
+      }
+      break;
     case 'p':
     case 'P':
       const currentSetting = simulationConfig.get('rendering.showPerformanceOverlay');
@@ -562,6 +652,7 @@ document.addEventListener('keydown', (e) => {
 function clearAllData() {
   if (confirm('Are you sure you want to clear all saved data? This cannot be undone.')) {
     localStorage.removeItem('rlQTable');
+    localStorage.removeItem('dqnAgent');
     localStorage.removeItem('bestBrain');
     console.log('All saved data cleared');
     alert('All saved data has been cleared. The page will reload.');
@@ -730,9 +821,9 @@ function saveQTableToFile() {
 }
 
 function saveRLToFile() {
-  const qTableData = {
+  const rlData = {
     mode: "RL",
-    qTable: rlAgent.qTable,
+    agentType: useDQN ? "DQN" : "Q-table",
     episode: episode,
     epsilon: rlAgent.epsilon,
     timestamp: new Date().toISOString(),
@@ -743,15 +834,21 @@ function saveRLToFile() {
     }
   };
 
-  const dataStr = JSON.stringify(qTableData, null, 2);
+  if (useDQN) {
+    rlData.dqnState = rlAgent.save();
+  } else {
+    rlData.qTable = rlAgent.qTable;
+  }
+
+  const dataStr = JSON.stringify(rlData, null, 2);
   const dataBlob = new Blob([dataStr], { type: 'application/json' });
 
   const link = document.createElement('a');
   link.href = URL.createObjectURL(dataBlob);
-  link.download = `rl-qtable-episode-${episode}-${Date.now()}.json`;
+  link.download = `rl-${useDQN ? 'dqn' : 'qtable'}-episode-${episode}-${Date.now()}.json`;
   link.click();
 
-  console.log('Q-table exported successfully!');
+  console.log(`${useDQN ? 'DQN' : 'Q-table'} exported successfully!`);
 }
 
 function saveNNToFile() {
@@ -811,44 +908,60 @@ function loadQTableFromFile(event) {
 }
 
 // New helper functions to load RL and Neural Network data from files
-function loadRLFromFile(qTableData) {
+function loadRLFromFile(rlData) {
   // Validate the data structure
-  if (qTableData.qTable && typeof qTableData.qTable === 'object') {
+  if ((rlData.qTable && typeof rlData.qTable === 'object') ||
+    (rlData.dqnState && typeof rlData.dqnState === 'object')) {
+
     // Switch to RL mode if not already
     if (carMode !== "RL") {
       carMode = "RL";
       initializeSimulation();
     }
 
-    rlAgent.qTable = qTableData.qTable;
+    // Determine agent type from loaded data
+    if (rlData.agentType === "DQN" && rlData.dqnState) {
+      useDQN = true;
+      setupRLCar(); // This will create a DQN agent
+      rlAgent.load(rlData.dqnState);
+      console.log('DQN agent loaded successfully!');
+    } else if (rlData.qTable) {
+      useDQN = false;
+      setupRLCar(); // This will create a Q-table agent
+      rlAgent.qTable = rlData.qTable;
+      console.log('Q-table loaded successfully!');
+    }
 
     // Restore other parameters if available
-    if (qTableData.epsilon !== undefined) {
-      rlAgent.epsilon = qTableData.epsilon;
+    if (rlData.epsilon !== undefined) {
+      rlAgent.epsilon = rlData.epsilon;
     }
-    if (qTableData.episode !== undefined) {
-      episode = qTableData.episode;
+    if (rlData.episode !== undefined) {
+      episode = rlData.episode;
     }
-    if (qTableData.stats) {
-      if (qTableData.stats.totalSteps !== undefined) {
-        rlStepCount = qTableData.stats.totalSteps;
+    if (rlData.stats) {
+      if (rlData.stats.totalSteps !== undefined) {
+        rlStepCount = rlData.stats.totalSteps;
       }
-      if (qTableData.stats.lastEpisodeReward !== undefined) {
-        lastEpisodeReward = qTableData.stats.lastEpisodeReward;
+      if (rlData.stats.lastEpisodeReward !== undefined) {
+        lastEpisodeReward = rlData.stats.lastEpisodeReward;
       }
-      if (qTableData.stats.lastEpisodeSteps !== undefined) {
-        lastEpisodeSteps = qTableData.stats.lastEpisodeSteps;
+      if (rlData.stats.lastEpisodeSteps !== undefined) {
+        lastEpisodeSteps = rlData.stats.lastEpisodeSteps;
       }
     }
 
     // Also save to localStorage
-    localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+    if (useDQN) {
+      localStorage.setItem("dqnAgent", JSON.stringify(rlData.dqnState));
+    } else {
+      localStorage.setItem("rlQTable", JSON.stringify(rlAgent.qTable));
+    }
 
-    console.log('Q-table loaded successfully!');
-    alert('Q-table loaded successfully!');
+    alert(`${useDQN ? 'DQN agent' : 'Q-table'} loaded successfully!`);
   } else {
-    console.error('Invalid Q-table data format');
-    alert('Invalid Q-table data format. Please select a valid RL JSON file.');
+    console.error('Invalid RL data format');
+    alert('Invalid RL data format. Please select a valid RL JSON file.');
   }
 }
 

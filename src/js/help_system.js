@@ -53,6 +53,7 @@ class HelpSystem {
           <div style="line-height: 1.6;">
             <strong>C</strong> - Config. Panel (Not implemented yet)<br>
             <strong>E</strong> - Enhanced Neural Network<br>
+            <strong>D</strong> - Toggle DQN (in RL mode)<br>
             <strong>P</strong> - Performance Overlay<br>
             <strong>H</strong> - This Help Panel<br>
             <strong>R</strong> - Reset Simulation<br>
@@ -65,7 +66,9 @@ class HelpSystem {
       <div style="margin-top: 20px;">
         <h3 style="color: #9C27B0; margin-bottom: 10px;">🤖 AI Modes</h3>
         <div style="line-height: 1.6;">
-          <strong>RL Mode:</strong> Single car using Q-learning reinforcement learning<br>
+          <strong>RL Mode:</strong> Single car using reinforcement learning<br>
+          &nbsp;&nbsp;• Q-table: Simple tabular learning (default)<br>
+          &nbsp;&nbsp;• DQN: Deep Q-Network with neural networks<br>
           <strong>NN Mode:</strong> Multiple cars using neural networks with genetic algorithm<br>
           <strong>Enhanced NN:</strong> Advanced neural networks with different activation functions
         </div>
