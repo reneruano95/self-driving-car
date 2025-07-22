@@ -86,11 +86,16 @@ class HelpSystem {
           background: #4CAF50;
           color: white;
           border: none;
-          padding: 10px 20px;
+          width: 100px;
+          height: 40px;
           border-radius: 5px;
           cursor: pointer;
-          font-size: 14px;
-        ">Close Help</button>
+                  ">
+        <p style="
+        margin: 0;
+        font-size: 14px;
+        ">Close Help</p>
+        </button>
       </div>
     `;
 
@@ -103,7 +108,7 @@ class HelpSystem {
     if (!this.helpPanel) {
       this.createHelpPanel();
     }
-    
+
     this.isVisible = !this.isVisible;
     this.helpPanel.style.display = this.isVisible ? 'block' : 'none';
   }
