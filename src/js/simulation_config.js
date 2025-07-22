@@ -146,7 +146,7 @@ class SimulationConfig {
    * Get nested object value by dot notation path
    */
   getNestedValue(obj, path) {
-    return path.split('.').reduce((current, key) => 
+    return path.split('.').reduce((current, key) =>
       current && current[key] !== undefined ? current[key] : undefined, obj
     );
   }
@@ -245,8 +245,26 @@ class SimulationConfig {
         <span id="mutationRateValue">${this.get('ai.nn.mutationRate')}</span>
       </div>
       <div>
-        <button id="exportConfig">Export Config</button>
-        <button id="resetConfig">Reset</button>
+        <button 
+          style="
+          background: #4CAF50; 
+          color: white; border: none; 
+          width: 100px; 
+          height: 40px; 
+          border-radius: 5px; 
+          cursor: pointer;
+          font-size: 14px;"
+         id="exportConfig">Export Config</button>
+        <button 
+          style="background: #f44336; 
+          color: white; 
+          border: none; 
+          width: 100px; 
+          height: 40px; 
+          border-radius: 5px; 
+          cursor: pointer;
+          font-size: 14px;"
+          id="resetConfig">Reset</button>
       </div>
     `;
 
@@ -260,11 +278,11 @@ class SimulationConfig {
     sliders.forEach(sliderId => {
       const slider = panel.querySelector(`#${sliderId}`);
       const valueDisplay = panel.querySelector(`#${sliderId}Value`);
-      
+
       slider.addEventListener('input', (e) => {
         const value = parseFloat(e.target.value);
         valueDisplay.textContent = value;
-        
+
         switch (sliderId) {
           case 'trafficCount':
             this.set('environment.trafficCount', value);
