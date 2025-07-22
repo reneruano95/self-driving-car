@@ -48,7 +48,22 @@ button:hover {
 }
 
 #discardButton {
-  background: #f44336;
+  background: #F44336;
+  color: white;
+}
+
+#enhancedButton {
+  background: #FF5722;
+  color: white;
+}
+
+#configButton {
+  background: #607D8B;
+  color: white;
+}
+
+#helpButton {
+  background: #3F51B5;
   color: white;
 }
 

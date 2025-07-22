@@ -13,6 +13,11 @@ const N_CARS = 100; // Number of neural network cars
 let carMode = "RL"; // "RL" for Reinforcement Learning, "NN" for Neural Network
 let time = 0;
 
+// Initialize performance monitor and configuration
+const performanceMonitor = new PerformanceMonitor();
+let useEnhancedNN = false; // Toggle for enhanced neural network
+let geneticAlgorithm = null;
+
 const carCanvas = document.getElementById("carCanvas");
 carCanvas.width = 200;
 
@@ -223,10 +228,23 @@ function saveRL() {
 
 function saveNN() {
   try {
-    localStorage.setItem("bestBrain", JSON.stringify(bestCar.brain));
+    const brainData = {
+      brain: bestCar.brain,
+      isEnhanced: useEnhancedNN,
+      generation: geneticAlgorithm ? geneticAlgorithm.generation : 0,
+      performance: performanceMonitor.getReport().aiMetrics
+    };
+    localStorage.setItem("bestBrain", JSON.stringify(brainData));
     console.log('Neural network saved to localStorage');
   } catch (e) {
     console.error("Failed to save neural network to localStorage:", e);
+    // Fallback: save just the brain if the enhanced format fails
+    try {
+      localStorage.setItem("bestBrain", JSON.stringify(bestCar.brain));
+      console.log('Neural network saved to localStorage (fallback format)');
+    } catch (e2) {
+      console.error("Failed to save neural network (fallback):", e2);
+    }
   }
 }
 
@@ -252,6 +270,10 @@ function discardRL() {
 function discardNN() {
   try {
     localStorage.removeItem("bestBrain");
+    // Reset cars to fresh brains
+    if (carMode === "NN") {
+      setupNeuralNetworkCars();
+    }
     console.log('Neural network discarded from localStorage');
   } catch (e) {
     console.error("Failed to discard neural network:", e);
@@ -260,8 +282,8 @@ function discardNN() {
 
 // Overlay stats on the canvas
 function drawStats(ctx) {
-  const rectWidth = 280; // Increased width for more stats
-  const rectHeight = 130; // Increased height for more stats
+  const rectWidth = 300; // Increased width for more stats
+  const rectHeight = 160; // Increased height for more stats
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // Clear previous stats
 
   const canvasWidth = ctx.canvas.width;
@@ -274,9 +296,10 @@ function drawStats(ctx) {
   ctx.fillStyle = "#222";
   ctx.fillRect(x, y, rectWidth, rectHeight);
   ctx.fillStyle = "#fff";
-  ctx.font = "16px monospace"; // Slightly smaller font to fit more info
+  ctx.font = "14px monospace";
 
-  ctx.fillText(`Mode: ${carMode}`, x + 10, y + 20);
+  ctx.fillText(`Mode: ${carMode} ${carMode === "NN" &&
+    useEnhancedNN ? '(Enhanced)' : ''}`, x + 10, y + 20);
 
   if (carMode === "RL") {
     // Action names for better readability
@@ -288,6 +311,7 @@ function drawStats(ctx) {
     ctx.fillText(`Steps: ${episodeStep}/${MAX_EPISODE_STEPS}`, x + 10, y + 80);
     ctx.fillText(`Action: ${actionName} (${currentAction})`, x + 10, y + 100);
     ctx.fillText(`ε: ${rlAgent.epsilon.toFixed(3)}, Speed: ${rlCar.speed.toFixed(2)}`, x + 10, y + 120);
+    ctx.fillText(`FPS: ${performanceMonitor.fps} (avg: ${performanceMonitor.getAverageFPS()})`, x + 10, y + 140);
   } else if (carMode === "NN") {
     const aliveCars = cars.filter(c => !c.damaged).length;
     const totalDistance = bestCar ? bestCar.y : 0;
@@ -296,7 +320,8 @@ function drawStats(ctx) {
     ctx.fillText(`Best Distance: ${Math.abs(totalDistance).toFixed(0)}`, x + 10, y + 60);
     ctx.fillText(`Speed: ${bestCar ? bestCar.speed.toFixed(2) : 0}`, x + 10, y + 80);
     ctx.fillText(`Time: ${Math.floor(time / 60)}s`, x + 10, y + 100);
-    ctx.fillText(`Best Car Position: ${bestCar ? bestCar.y.toFixed(0) : 0}`, x + 10, y + 120);
+    ctx.fillText(`Generation: ${geneticAlgorithm ? geneticAlgorithm.generation : 0}`, x + 10, y + 120);
+    ctx.fillText(`FPS: ${performanceMonitor.fps} (avg: ${performanceMonitor.getAverageFPS()})`, x + 10, y + 140);
   }
 
   ctx.restore();
@@ -349,6 +374,7 @@ function initializeSimulation() {
     setupNeuralNetworkCars();
   }
   resetTraffic();
+  updateEnhancedButtonState();
 }
 
 function setupRLCar() {
@@ -368,18 +394,78 @@ function setupRLCar() {
 
 function setupNeuralNetworkCars() {
   cars = [];
-  for (let i = 0; i <= N_CARS; i++) {
-    cars.push(new Car(road.getLaneCenter(1), 100, 30, 50, "AI"));
+  const populationSize = simulationConfig.get('ai.nn.populationSize') || N_CARS;
+  const hiddenLayers = simulationConfig.get('ai.nn.hiddenLayers') || [6, 4];
+  const activationFunction = simulationConfig.get('ai.nn.activationFunction') || 'sigmoid';
+
+  // Initialize genetic algorithm if using enhanced networks
+  if (useEnhancedNN) {
+    geneticAlgorithm = new GeneticAlgorithm(
+      populationSize,
+      simulationConfig.get('ai.nn.mutationRate') || 0.1,
+      simulationConfig.get('ai.nn.eliteCount') || 2
+    );
+  }
+
+  for (let i = 0; i <= populationSize; i++) {
+    const car = new Car(road.getLaneCenter(1), 100, 30, 50, "AI");
+
+    // Use enhanced neural network if enabled
+    if (useEnhancedNN) {
+      car.brain = new EnhancedNeuralNetwork([5, ...hiddenLayers, 4], activationFunction);
+    }
+    // Note: Car constructor already creates a standard neural network if no enhanced one is set
+
+    cars.push(car);
   }
   bestCar = cars[0];
 
   // Load best brain from localStorage if available
   if (localStorage.getItem("bestBrain")) {
-    for (let i = 0; i < cars.length; i++) {
-      cars[i].brain = JSON.parse(localStorage.getItem("bestBrain"));
-      if (i != 0) {
-        NeuralNetwork.mutate(cars[i].brain, 0.1);
+    try {
+      const savedData = JSON.parse(localStorage.getItem("bestBrain"));
+      let savedBrain = savedData;
+
+      // Handle both old format (direct brain) and new format (with metadata)
+      if (savedData.brain) {
+        savedBrain = savedData.brain;
+        // If we have enhanced data, update the enhanced flag
+        if (savedData.isEnhanced !== undefined) {
+          useEnhancedNN = savedData.isEnhanced;
+        }
       }
+
+      for (let i = 0; i < cars.length; i++) {
+        if (useEnhancedNN && savedBrain.activationFunction) {
+          // Enhanced network format
+          cars[i].brain = new EnhancedNeuralNetwork([5, ...hiddenLayers, 4], savedBrain.activationFunction);
+          // Copy weights and biases
+          for (let j = 0; j < cars[i].brain.levels.length && j < savedBrain.levels.length; j++) {
+            if (savedBrain.levels[j]) {
+              cars[i].brain.levels[j].weights = JSON.parse(JSON.stringify(savedBrain.levels[j].weights));
+              cars[i].brain.levels[j].biases = JSON.parse(JSON.stringify(savedBrain.levels[j].biases));
+            }
+          }
+        } else if (savedBrain.levels) {
+          // Standard network format
+          cars[i].brain = JSON.parse(JSON.stringify(savedBrain));
+        } else {
+          // Fallback: create new brain if saved data is invalid
+          console.warn('Invalid saved brain data, creating new brain');
+          continue;
+        }
+
+        if (i != 0) {
+          if (useEnhancedNN && cars[i].brain.levels) {
+            EnhancedNeuralNetwork.mutate(cars[i].brain, 0.1);
+          } else if (cars[i].brain.levels) {
+            NeuralNetwork.mutate(cars[i].brain, 0.1);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error loading saved brain:', e);
+      // Continue with fresh brains if loading fails
     }
   }
 }
@@ -388,12 +474,136 @@ function setupNeuralNetworkCars() {
 function toggleCarMode() {
   carMode = carMode === "RL" ? "NN" : "RL";
   initializeSimulation();
+  updateEnhancedButtonState();
   console.log(`Switched to ${carMode} mode`);
+}
+
+// Update enhanced button state based on current mode
+function updateEnhancedButtonState() {
+  const enhancedButton = document.getElementById("enhancedButton");
+  if (enhancedButton) {
+    if (carMode === "RL") {
+      enhancedButton.disabled = true;
+      enhancedButton.title = "Enhanced Neural Network (only available in NN mode)";
+      enhancedButton.style.opacity = "0.1"; // Make it visually disabled
+    } else {
+      enhancedButton.disabled = false;
+      enhancedButton.title = "Toggle Enhanced Neural Network (NN mode only)";
+      enhancedButton.style.opacity = "1";
+    }
+  }
+}
+
+// Toggle enhanced neural network
+function toggleEnhancedNN() {
+  // Only allow toggling in NN mode
+  if (carMode !== "NN") {
+    console.log("Enhanced Neural Network is only available in NN mode");
+    return;
+  }
+
+  useEnhancedNN = !useEnhancedNN;
+  if (carMode === "NN") {
+    initializeSimulation();
+  }
+  console.log(`Enhanced Neural Network: ${useEnhancedNN ? 'ON' : 'OFF'}`);
+}
+
+// Toggle configuration panel
+function toggleConfig() {
+  simulationConfig.toggleConfigPanel();
+}
+
+// Add simulation control variables
+let isPaused = false;
+let lastAnimationTime = 0;
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  switch (e.key) {
+    case 'c':
+    case 'C':
+      toggleConfig();
+      break;
+    case 'e':
+    case 'E':
+      if (carMode === "NN") {
+        toggleEnhancedNN();
+      }
+      break;
+    case 'p':
+    case 'P':
+      const currentSetting = simulationConfig.get('rendering.showPerformanceOverlay');
+      simulationConfig.set('rendering.showPerformanceOverlay', !currentSetting);
+      break;
+    case 'h':
+    case 'H':
+      toggleHelp();
+      break;
+    case 'r':
+    case 'R':
+      resetSimulation();
+      break;
+    case ' ': // Spacebar
+      e.preventDefault();
+      togglePause();
+      break;
+    case 'Delete':
+    case 'Backspace':
+      if (e.ctrlKey) {
+        // Ctrl+Delete/Backspace: Clear all localStorage data
+        clearAllData();
+      }
+      break;
+  }
+});
+
+// Clear all saved data (useful for debugging)
+function clearAllData() {
+  if (confirm('Are you sure you want to clear all saved data? This cannot be undone.')) {
+    localStorage.removeItem('rlQTable');
+    localStorage.removeItem('bestBrain');
+    console.log('All saved data cleared');
+    alert('All saved data has been cleared. The page will reload.');
+    location.reload();
+  }
+}
+
+// Add simulation control functions
+function togglePause() {
+  isPaused = !isPaused;
+  if (!isPaused) {
+    requestAnimationFrame(animate);
+  }
+  console.log(`Simulation ${isPaused ? 'paused' : 'resumed'}`);
+}
+
+function resetSimulation() {
+  if (carMode === "RL") {
+    resetRLCar();
+    episode = 1;
+    episodeReward = 0;
+    episodeStep = 0;
+  } else if (carMode === "NN") {
+    setupNeuralNetworkCars();
+    if (geneticAlgorithm) {
+      geneticAlgorithm.generation = 0;
+    }
+  }
+  resetTraffic();
+  console.log('Simulation reset');
 }
 
 animate();
 
+// Initialize button states when page loads
+updateEnhancedButtonState();
+
 function animate(time) {
+  if (isPaused) {
+    return; // Stop animation when paused
+  }
+
   if (carMode === "RL") {
     animateRL();
   } else if (carMode === "NN") {
@@ -402,11 +612,17 @@ function animate(time) {
 }
 
 function animateRL() {
+  // Update performance monitor
+  performanceMonitor.update();
+
   for (let i = 0; i < traffic.length; i++) {
     traffic[i].update(road.borders, []); // Update each traffic car
   }
   stepRLCar();
   rlCar.update(road.borders, traffic);
+
+  // Track RL performance
+  performanceMonitor.trackAIMetrics('RL', episodeReward);
 
   carCanvas.height = window.innerHeight;
   networkCanvas.height = window.innerHeight;
@@ -423,10 +639,18 @@ function animateRL() {
   drawStats(networkCanvasContext); // Draw stats on the network canvas
 
   carCanvasContext.restore();
+
+  // Draw performance overlay if enabled
+  if (simulationConfig.get('rendering.showPerformanceOverlay')) {
+    performanceMonitor.drawOverlay(carCanvasContext);
+  }
+
   requestAnimationFrame(animate);
 }
 
 function animateNN(time) {
+  // Update performance monitor
+  performanceMonitor.update();
 
   for (let i = 0; i < traffic.length; i++) {
     traffic[i].update(road.borders, []);
@@ -437,6 +661,35 @@ function animateNN(time) {
   }
 
   bestCar = cars.find(c => c.y == Math.min(...cars.map(c => c.y)));
+
+  // Track NN performance
+  performanceMonitor.trackAIMetrics('NN', Math.abs(bestCar.y));
+
+  // Check if generation should evolve (when most cars are damaged)
+  const aliveCars = cars.filter(c => !c.damaged).length;
+  if (useEnhancedNN && geneticAlgorithm && aliveCars < cars.length * 0.1) {
+    // Calculate fitness scores (distance traveled)
+    const fitnessScores = cars.map(car => Math.abs(car.y));
+
+    // Evolve the population
+    const newPopulation = geneticAlgorithm.evolvePopulation(
+      cars.map(car => car.brain),
+      fitnessScores
+    );
+
+    // Apply new brains to cars and reset positions
+    for (let i = 0; i < cars.length; i++) {
+      cars[i].brain = newPopulation[i];
+      cars[i].x = road.getLaneCenter(1);
+      cars[i].y = 100;
+      cars[i].speed = 0;
+      cars[i].angle = 0;
+      cars[i].damaged = false;
+    }
+
+    bestCar = cars[0];
+    console.log(`Generation ${geneticAlgorithm.generation} evolved`);
+  }
 
   carCanvas.height = window.innerHeight;
   networkCanvas.height = window.innerHeight;
@@ -456,6 +709,11 @@ function animateNN(time) {
   bestCar.draw(carCanvasContext, "blue", true);
 
   carCanvasContext.restore();
+
+  // Draw performance overlay if enabled
+  if (simulationConfig.get('rendering.showPerformanceOverlay')) {
+    performanceMonitor.drawOverlay(carCanvasContext);
+  }
 
   networkCanvasContext.lineDashOffset = -time / 50;
   Visualizer.drawNetwork(networkCanvasContext, bestCar.brain);
@@ -500,11 +758,14 @@ function saveNNToFile() {
   const neuralNetworkData = {
     mode: "NN",
     brain: bestCar.brain,
+    isEnhanced: useEnhancedNN,
+    generation: geneticAlgorithm ? geneticAlgorithm.generation : 0,
     timestamp: new Date().toISOString(),
     stats: {
       totalCars: cars.length,
       bestDistance: Math.abs(bestCar.y),
-      time: time
+      time: time,
+      performance: performanceMonitor.getReport()
     }
   };
 
@@ -513,7 +774,7 @@ function saveNNToFile() {
 
   const link = document.createElement('a');
   link.href = URL.createObjectURL(dataBlob);
-  link.download = `neural-network-${Date.now()}.json`;
+  link.download = `neural-network-${useEnhancedNN ? 'enhanced-' : ''}${Date.now()}.json`;
   link.click();
 
   console.log('Neural network exported successfully!');
@@ -600,17 +861,30 @@ function loadNNFromFile(neuralNetworkData) {
       initializeSimulation();
     }
 
+    // Update enhanced flag if available
+    if (neuralNetworkData.isEnhanced !== undefined) {
+      useEnhancedNN = neuralNetworkData.isEnhanced;
+    }
+
     // Apply the loaded brain to all cars
     for (let i = 0; i < cars.length; i++) {
-      cars[i].brain = JSON.parse(JSON.stringify(neuralNetworkData.brain));
-      if (i != 0) {
-        NeuralNetwork.mutate(cars[i].brain, 0.1);
+      try {
+        cars[i].brain = JSON.parse(JSON.stringify(neuralNetworkData.brain));
+        if (i != 0 && cars[i].brain && cars[i].brain.levels) {
+          if (useEnhancedNN) {
+            EnhancedNeuralNetwork.mutate(cars[i].brain, 0.1);
+          } else {
+            NeuralNetwork.mutate(cars[i].brain, 0.1);
+          }
+        }
+      } catch (e) {
+        console.error(`Error applying brain to car ${i}:`, e);
       }
     }
     bestCar = cars[0];
 
     // Also save to localStorage
-    localStorage.setItem("bestBrain", JSON.stringify(neuralNetworkData.brain));
+    localStorage.setItem("bestBrain", JSON.stringify(neuralNetworkData));
 
     console.log('Neural network loaded successfully!');
     alert('Neural network loaded successfully!');

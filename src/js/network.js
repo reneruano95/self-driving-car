@@ -24,6 +24,17 @@ class NeuralNetwork {
    * @returns {Array<number>} The output values from the neural network.s
    */
   static feedForward(givenInputs, network) {
+    // Safety checks
+    if (!network || !network.levels || network.levels.length === 0) {
+      console.error('Invalid network structure');
+      return [0, 0, 0, 0]; // Return default outputs for car controls
+    }
+    
+    if (!Array.isArray(givenInputs) || givenInputs.length === 0) {
+      console.error('Invalid inputs');
+      return [0, 0, 0, 0];
+    }
+    
     let outputs = Level.feedForward(givenInputs, network.levels[0]);
     for (let i = 1; i < network.levels.length; i++) {
       outputs = Level.feedForward(outputs, network.levels[i]);
@@ -50,12 +61,24 @@ class NeuralNetwork {
       throw new Error("Mutation amount must be between 0 and 1.");
     }
 
+    // Safety check
+    if (!network || !network.levels || !Array.isArray(network.levels)) {
+      console.error('Invalid network structure for mutation');
+      return;
+    }
+
     network.levels.forEach((level) => {
+      if (!level || !level.biases || !level.weights) {
+        console.error('Invalid level structure for mutation');
+        return;
+      }
+      
       for (let i = 0; i < level.biases.length; i++) {
         level.biases[i] = lerp(level.biases[i], Math.random() * 2 - 1, amount);
       }
 
       for (let i = 0; i < level.weights.length; i++) {
+        if (!Array.isArray(level.weights[i])) continue;
         for (let j = 0; j < level.weights[i].length; j++) {
           level.weights[i][j] = lerp(
             level.weights[i][j],

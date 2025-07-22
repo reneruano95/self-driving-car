@@ -10,8 +10,12 @@ This project is a self-driving car simulation built using HTML, CSS, and JavaScr
 ## Features
 
 - **Dual AI Modes with Toggle**: Easily switch between Reinforcement Learning (RL) and Neural Network (NN) car modes using the new toggle button (🔄) in the UI. Both modes share unified controls and export/import options.
+- **Enhanced Neural Networks**: Advanced neural network implementation with multiple activation functions (sigmoid, tanh, ReLU, leaky ReLU) and genetic algorithm evolution.
 - **AI-Driven Cars (NN Mode)**: Simulates multiple cars controlled by neural networks that evolve to improve driving performance.
 - **Reinforcement Learning Agent (RL Mode)**: Includes a car controlled by a Q-learning RL agent that learns to drive through trial and error, with its progress saved automatically.
+- **Genetic Algorithm Evolution**: Advanced population-based evolution with tournament selection, crossover, and mutation for neural networks.
+- **Performance Monitoring**: Real-time FPS, memory usage, and AI performance tracking with visual overlays.
+- **Configuration System**: Runtime adjustment of simulation parameters, scenarios, and AI settings through an intuitive UI panel.
 - **Unified Save/Load/Export/Import**: Save, discard, export, or import the current AI (RL Q-table or NN brain) using the same set of buttons, with automatic detection of the current mode.
 - **Traffic Simulation**: Includes dummy cars to simulate real-world traffic.
 - **Neural Network Visualization**: Visualizes the neural network's structure and activity (NN mode).
@@ -19,6 +23,8 @@ This project is a self-driving car simulation built using HTML, CSS, and JavaScr
 - **Road with Lanes**: A road with multiple lanes, lane markings, and borders.
 - **Physics Simulation**: Implements acceleration, friction, and speed limits.
 - **Canvas Rendering**: Renders the simulation on HTML canvas elements.
+- **Help System**: Comprehensive help overlay with controls and keyboard shortcuts.
+- **Keyboard Shortcuts**: Quick access to all features via keyboard commands.
 
 
 ## Dual AI Modes: RL and Neural Network
@@ -45,14 +51,18 @@ self-driving-car/
 │   │   ├── controls.js    # Keyboard controls for the car
 │   │   ├── main.js        # Main script to initialize and animate the simulation
 │   │   ├── network.js     # Neural network implementation
+│   │   ├── enhanced_neural_network.js # Enhanced neural networks with advanced features
 │   │   ├── road.js        # Road class with lane management
 │   │   ├── sensor.js      # Implements the sensor class for detecting obstacles
 │   │   ├── utils.js       # Utility functions (e.g., linear interpolation)
 │   │   ├── rl_agent.js    # Reinforcement learning agent (Q-learning)
 │   │   ├── utils_rl.js    # Reinforcement learning utility functions
+│   │   ├── performance_monitor.js # Performance monitoring and FPS tracking
+│   │   ├── simulation_config.js # Configuration system for runtime parameter adjustment
+│   │   ├── help_system.js # Help overlay system
 │   │   └── visualizer.js  # Neural network visualization
 ├── images/
-│   ├── self-driving-car.png
+│   ├── nn-car.png
 │   └── rl-car.png
 └── README.md              # Project documentation
 ```
@@ -69,16 +79,31 @@ self-driving-car/
 
 ## Controls
 
-- **Toggle Mode (🔄)**: Switch between RL and NN car modes.
+### UI Buttons
+- **🔄 Toggle Mode**: Switch between RL and NN car modes.
 - **💾 Save**: Save the current AI (Q-table or NN brain) to localStorage.
 - **🗑️ Discard**: Remove the current AI from localStorage.
 - **📤 Export**: Download the current AI as a JSON file.
 - **📥 Import**: Load an AI from a JSON file (auto-detects RL or NN format).
-- **Arrow Up**: Move forward (manual mode, if enabled)
+- **⚡ Enhanced NN**: Toggle enhanced neural networks with advanced features (NN mode only).
+- **⚙️ Config Panel**: Open the configuration panel for runtime parameter adjustment.
+- **❓ Help**: Show help overlay with all controls and keyboard shortcuts.
+
+### Keyboard Shortcuts
+- **C**: Open/close Configuration Panel
+- **E**: Toggle Enhanced Neural Networks (NN mode only)
+- **P**: Toggle Performance Overlay
+- **H**: Show/hide Help Panel
+- **R**: Reset Simulation
+- **Space**: Pause/Resume Simulation
+
+### Manual Controls (if enabled)
+- **Arrow Up**: Move forward
 - **Arrow Down**: Move backward
 - **Arrow Left**: Turn left
 - **Arrow Right**: Turn right
-- Note: The default control type is "AI" for autonomous driving, but you can switch modes and manage AI data at any time.
+
+**Note**: The default control type is "AI" for autonomous driving, but you can switch modes and manage AI data at any time.
 
 ## Classes and Methods
 
