@@ -12,7 +12,9 @@ This project is a self-driving car simulation built using HTML, CSS, and JavaScr
 - **Dual AI Modes with Toggle**: Easily switch between Reinforcement Learning (RL) and Neural Network (NN) car modes using the new toggle button (🔄) in the UI. Both modes share unified controls and export/import options.
 - **Enhanced Neural Networks**: Advanced neural network implementation with multiple activation functions (sigmoid, tanh, ReLU, leaky ReLU) and genetic algorithm evolution.
 - **AI-Driven Cars (NN Mode)**: Simulates multiple cars controlled by neural networks that evolve to improve driving performance.
-- **Reinforcement Learning Agent (RL Mode)**: Includes a car controlled by a Q-learning RL agent that learns to drive through trial and error, with its progress saved automatically.
+- **Reinforcement Learning Agent (RL Mode)**: Includes a car controlled by RL agents that learn to drive through trial and error:
+  - **Q-table Agent**: Simple tabular Q-learning for discrete state spaces
+  - **DQN Agent**: Deep Q-Network using neural networks for continuous state space learning with experience replay and target networks
 - **Genetic Algorithm Evolution**: Advanced population-based evolution with tournament selection, crossover, and mutation for neural networks.
 - **Performance Monitoring**: Real-time FPS, memory usage, and AI performance tracking with visual overlays.
 - **Configuration System**: Runtime adjustment of simulation parameters, scenarios, and AI settings through an intuitive UI panel.
@@ -30,10 +32,15 @@ This project is a self-driving car simulation built using HTML, CSS, and JavaScr
 ## Dual AI Modes: RL and Neural Network
 You can now toggle between two AI modes:
 
-- **RL Mode**: A single car controlled by a Q-learning agent. Progress is saved as a Q-table, which can be exported/imported or saved/discarded from localStorage. The RL car is visualized in green, and its stats are shown on the canvas.
+- **RL Mode**: A single car controlled by reinforcement learning agents. You can switch between:
+  - **Q-table Agent**: Traditional tabular Q-learning with discrete state space
+  - **DQN Agent**: Deep Q-Network with neural networks, experience replay, and target networks for continuous state space learning
+  
+  Progress is saved as Q-table data or DQN state, which can be exported/imported or saved/discarded from localStorage. The RL car is visualized in green, and its stats are shown on the canvas.
+
 - **NN Mode**: Multiple cars controlled by neural networks. The best-performing car's brain can be saved, exported, or imported. The NN cars are visualized in blue, and their stats (best distance, speed, etc.) are shown on the canvas.
 
-Use the **toggle button (🔄)** in the UI to switch between modes at any time. All save/load/export/import actions apply to the currently active mode.
+Use the **toggle button (🔄)** in the UI to switch between RL and NN modes. In RL mode, press **'D'** to toggle between Q-table and DQN agents. All save/load/export/import actions apply to the currently active mode and agent type.
 
 ![Self-Driving Car Simulation](images/rl-car.png)
 
@@ -56,6 +63,7 @@ self-driving-car/
 │   │   ├── sensor.js      # Implements the sensor class for detecting obstacles
 │   │   ├── utils.js       # Utility functions (e.g., linear interpolation)
 │   │   ├── rl_agent.js    # Reinforcement learning agent (Q-learning)
+│   │   ├── dqn_agent.js   # Deep Q-Network agent with neural networks
 │   │   ├── utils_rl.js    # Reinforcement learning utility functions
 │   │   ├── performance_monitor.js # Performance monitoring and FPS tracking
 │   │   ├── simulation_config.js # Configuration system for runtime parameter adjustment
@@ -92,6 +100,7 @@ self-driving-car/
 ### Keyboard Shortcuts
 - **C**: Open/close Configuration Panel
 - **E**: Toggle Enhanced Neural Networks (NN mode only)
+- **D**: Toggle DQN Agent (RL mode only - switches between Q-table and DQN)
 - **P**: Toggle Performance Overlay
 - **H**: Show/hide Help Panel
 - **R**: Reset Simulation
@@ -104,6 +113,35 @@ self-driving-car/
 - **Arrow Right**: Turn right
 
 **Note**: The default control type is "AI" for autonomous driving, but you can switch modes and manage AI data at any time.
+
+## Deep Q-Network (DQN) Agent
+
+The DQN agent is an advanced reinforcement learning implementation that uses neural networks instead of Q-tables for value function approximation. This allows for:
+
+### Key Features
+- **Continuous State Space**: Handles precise sensor readings without discretization
+- **Experience Replay**: Stores experiences in a circular buffer for stable learning
+- **Target Network**: Uses a separate target network updated periodically for training stability
+- **Neural Network Architecture**: 64-32 hidden layer network for Q-value estimation
+
+### Advantages over Q-table
+- **Better Generalization**: Can learn complex patterns and handle unseen states
+- **Scalability**: Works with high-dimensional state spaces
+- **Continuous Learning**: No need for state discretization
+- **Memory Efficiency**: More compact representation than large Q-tables
+
+### Usage
+1. Switch to RL mode using the toggle button (🔄)
+2. Press **'D'** to enable DQN agent (you'll see "RL (DQN)" in the stats)
+3. The agent will learn automatically through experience replay
+4. Progress is saved automatically and can be exported/imported
+
+### Hyperparameters
+- Learning Rate: 0.001
+- Batch Size: 32 experiences
+- Memory Size: 10,000 experiences
+- Target Network Update: Every 100 training steps
+- Epsilon Decay: 0.995 (exploration rate)
 
 ## Classes and Methods
 
